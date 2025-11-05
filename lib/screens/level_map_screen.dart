@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../data/game_level.dart';
 import 'game_level_screen.dart';
 
 class LevelMapScreen extends StatefulWidget {
@@ -13,8 +14,9 @@ class LevelMapScreen extends StatefulWidget {
 class _LevelMapScreenState extends State<LevelMapScreen>
     with TickerProviderStateMixin {
   int currentLevel = 1;
-  int totalLevels = 20;
-  Set<int> completedLevels = {1, 2, 3}; // مستويات مكتملة للتجربة
+  int totalLevels = GameLevelsDatabase.getTotalLevels();
+  Set<int> completedLevels = {}; // سيتم تحميلها من SharedPreferences
+  int totalScore = 0;
   
   late AnimationController _floatingController;
   late AnimationController _starController;
@@ -22,6 +24,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   @override
   void initState() {
     super.initState();
+    _loadProgress();
     
     _floatingController = AnimationController(
       duration: const Duration(seconds: 3),
@@ -32,6 +35,16 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat();
+  }
+  
+  void _loadProgress() {
+    // هنا يمكنك تحميل التقدم من SharedPreferences
+    // مثال للتجربة:
+    setState(() {
+      completedLevels = {1, 2};
+      currentLevel = 3;
+      totalScore = 340;
+    });
   }
   
   @override
@@ -97,9 +110,9 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                   children: [
                     const Icon(Icons.stars, color: Colors.amber, size: 24),
                     const SizedBox(width: 8),
-                    const Text(
-                      '2,450',
-                      style: TextStyle(
+                    Text(
+                      '$totalScore',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -161,6 +174,13 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.deepPurple.shade700,
+                      ),
+                    ),
+                    Text(
+                      'شبكة ${GameLevelsDatabase.getGridSizeForLevel(currentLevel)}×${GameLevelsDatabase.getGridSizeForLevel(currentLevel)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                   ],
@@ -264,6 +284,10 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     bool isCompleted = completedLevels.contains(levelNumber);
     bool isLocked = levelNumber > currentLevel;
     bool isCurrent = levelNumber == currentLevel;
+    
+    // الحصول على معلومات المستوى
+    final levelData = GameLevelsDatabase.getLevel(levelNumber);
+    final gridSize = levelData?.gridSize ?? 3;
     
     return AnimatedBuilder(
       animation: _floatingController,
@@ -375,6 +399,33 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                         ),
                       ),
                       
+                      // حجم الشبكة في الأعلى
+                      if (!isLocked)
+                        Positioned(
+                          top: -8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              '${gridSize}×$gridSize',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepPurple.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      
                       // النجوم للمستوى المكتمل
                       if (isCompleted)
                         Positioned(
@@ -453,7 +504,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   }
 
   void _navigateToLevel(int levelNumber) async {
-    // يمكنك استبدال هذا بالانتقال الفعلي للعبة
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -461,14 +511,26 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       ),
     );
     
-    if (result == true) {
-      setState(() {
-        completedLevels.add(levelNumber);
-        if (levelNumber == currentLevel && currentLevel < totalLevels) {
-          currentLevel++;
-        }
-      });
+    if (result != null && result is Map<String, dynamic>) {
+      if (result['completed'] == true) {
+        setState(() {
+          completedLevels.add(levelNumber);
+          totalScore += (result['score'] as int? ?? 0);
+          
+          if (levelNumber == currentLevel && currentLevel < totalLevels) {
+            currentLevel++;
+          }
+        });
+        
+        // هنا يمكنك حفظ التقدم في SharedPreferences
+        _saveProgress();
+      }
     }
+  }
+  
+  void _saveProgress() {
+    // حفظ التقدم في SharedPreferences
+    // SharedPreferences implementation here
   }
 }
 
@@ -496,7 +558,6 @@ class PathConnectorPainter extends CustomPainter {
     final path = Path();
     
     if (isEvenRow) {
-      // مسار من اليسار لليمين
       path.moveTo(size.width * 0.3, 0);
       path.quadraticBezierTo(
         size.width * 0.5,
@@ -505,7 +566,6 @@ class PathConnectorPainter extends CustomPainter {
         size.height,
       );
     } else {
-      // مسار من اليمين لليسار
       path.moveTo(size.width * 0.7, 0);
       path.quadraticBezierTo(
         size.width * 0.5,
@@ -516,8 +576,6 @@ class PathConnectorPainter extends CustomPainter {
     }
 
     canvas.drawPath(path, paint);
-    
-    // رسم خط متقطع
     _drawDashedPath(canvas, path, dashPaint);
   }
 

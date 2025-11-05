@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/game_level.dart';
+
 class GameConnectArrowScreen extends StatefulWidget {
   final int levelNumber;
   const GameConnectArrowScreen({super.key, required this.levelNumber});
@@ -13,12 +15,10 @@ class GameConnectArrowScreen extends StatefulWidget {
 class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
     with TickerProviderStateMixin {
   late String targetWord;
-  late List<String> letters;
   late List<String> foundWords;
   late List<String> possibleWords;
   late List<List<String>> grid;
-  
-  int gridSize = 5; // حجم الشبكة 5×5
+  late int gridSize;
   
   List<GridPosition> selectedPositions = [];
   String currentWord = '';
@@ -45,40 +45,43 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
   }
 
   void _initializeLevel() {
-    final levelData = {
-      1: {'target': 'كلمة', 'extra': ['كل', 'لك', 'كلم']},
-      2: {'target': 'برمجة', 'extra': ['برج', 'مجر', 'رجب']},
-      3: {'target': 'وصلة', 'extra': ['صلة', 'وصل', 'لص']},
-      4: {'target': 'لعبة', 'extra': ['لعب', 'عبل', 'بعل']},
-    };
-
-    final level = levelData[widget.levelNumber] ?? levelData[1]!;
-    targetWord = level['target'] as String;
-    possibleWords = [targetWord, ...(level['extra'] as List<String>)];
+    // تحميل بيانات المستوى من قاعدة البيانات
+    final levelData = GameLevelsDatabase.getLevel(widget.levelNumber);
+    
+    if (levelData == null) {
+      // في حالة عدم وجود المستوى، استخدم قيم افتراضية
+      gridSize = 3;
+      targetWord = 'خطأ';
+      possibleWords = ['خطأ'];
+    } else {
+      gridSize = levelData.gridSize;
+      targetWord = levelData.targetWord;
+      possibleWords = levelData.allWords;
+    }
+    
     foundWords = [];
-
     _generateGrid();
   }
 
   void _generateGrid() {
-    // إنشاء شبكة عشوائية تحتوي على الكلمات
+    // إنشاء شبكة فارغة
     grid = List.generate(
       gridSize,
       (_) => List.generate(gridSize, (_) => ''),
     );
 
-    // وضع الكلمة الرئيسية
-    _placeWordInGrid(targetWord);
-
-    // وضع الكلمات الإضافية
+    // وضع جميع الكلمات في الشبكة
     for (var word in possibleWords) {
-      if (word != targetWord) {
-        _placeWordInGrid(word);
-      }
+      _placeWordInGrid(word);
     }
 
     // ملء الفراغات بأحرف عشوائية
-    final arabicLetters = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
+    final arabicLetters = [
+      'ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 
+      'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 
+      'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 
+      'ن', 'ه', 'و', 'ي', 'ى', 'ة'
+    ];
     final random = Random();
     
     for (int i = 0; i < gridSize; i++) {
@@ -95,15 +98,19 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
     bool placed = false;
     int attempts = 0;
     
-    while (!placed && attempts < 50) {
+    while (!placed && attempts < 100) {
       attempts++;
       
-      // اختيار اتجاه عشوائي (أفقي، عمودي، قطري)
+      // اختيار اتجاه عشوائي
       final directions = [
-        [0, 1],  // أفقي يمين
-        [1, 0],  // عمودي أسفل
-        [1, 1],  // قطري يمين أسفل
-        [1, -1], // قطري يسار أسفل
+        [0, 1],   // أفقي يمين
+        [1, 0],   // عمودي أسفل
+        [1, 1],   // قطري يمين أسفل
+        [1, -1],  // قطري يسار أسفل
+        [0, -1],  // أفقي يسار
+        [-1, 0],  // عمودي أعلى
+        [-1, -1], // قطري يسار أعلى
+        [-1, 1],  // قطري يمين أعلى
       ];
       
       final direction = directions[random.nextInt(directions.length)];
@@ -184,7 +191,6 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
   void _onCellTouch(int row, int col) {
     final position = GridPosition(row, col);
     
-    // إذا كانت القائمة فارغة، أضف المربع الأول
     if (selectedPositions.isEmpty) {
       HapticFeedback.lightImpact();
       setState(() {
@@ -194,17 +200,14 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
       return;
     }
 
-    // إذا كان المربع محدد بالفعل، تجاهل
     if (selectedPositions.any((p) => p.row == row && p.col == col)) {
       return;
     }
 
-    // التحقق من أن المربع الجديد مجاور للمربع الأخير
     final lastPosition = selectedPositions.last;
     final rowDiff = (row - lastPosition.row).abs();
     final colDiff = (col - lastPosition.col).abs();
     
-    // السماح بالحركة في 8 اتجاهات (أفقي، عمودي، قطري)
     if (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff) > 0) {
       HapticFeedback.lightImpact();
       setState(() {
@@ -236,7 +239,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
         _foundWordController.reverse();
       });
 
-      if (currentWord == targetWord || foundWords.length == possibleWords.length) {
+      if (foundWords.length == possibleWords.length) {
         Future.delayed(const Duration(milliseconds: 800), () {
           _showSuccessDialog();
         });
@@ -312,6 +315,8 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
 
   @override
   Widget build(BuildContext context) {
+    final levelData = GameLevelsDatabase.getLevel(widget.levelNumber);
+    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -328,7 +333,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              _buildHeader(levelData),
               _buildFoundWordsPanel(),
               const SizedBox(height: 20),
               _buildCurrentWordDisplay(),
@@ -343,7 +348,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(LevelData? levelData) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -352,9 +357,30 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
             icon: const Icon(Icons.arrow_back_ios, color: Colors.deepPurple),
             onPressed: () => Navigator.pop(context),
           ),
-          const Spacer(),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  'المستوى ${widget.levelNumber}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple.shade700,
+                  ),
+                ),
+                if (levelData != null)
+                  Text(
+                    '${levelData.difficulty} • شبكة ${gridSize}×$gridSize',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
           _buildScoreCard(),
-          const Spacer(),
+          const SizedBox(width: 8),
           _buildHintButton(),
         ],
       ),
@@ -363,12 +389,12 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
 
   Widget _buildScoreCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.deepPurple.shade400, Colors.purple.shade600],
         ),
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.purple.shade200,
@@ -380,13 +406,13 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.stars, color: Colors.amber, size: 20),
-          const SizedBox(width: 8),
+          const Icon(Icons.stars, color: Colors.amber, size: 18),
+          const SizedBox(width: 6),
           Text(
             '$_score',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -403,16 +429,16 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
           scale: 1.0 + (_pulseController.value * 0.1),
           child: InkWell(
             onTap: _useHint,
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: _hints > 0
                       ? [Colors.orange.shade400, Colors.deepOrange.shade600]
                       : [Colors.grey.shade300, Colors.grey.shade400],
                 ),
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.orange.shade200.withOpacity(0.5),
@@ -424,13 +450,13 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb, color: Colors.white, size: 20),
-                  const SizedBox(width: 6),
+                  const Icon(Icons.lightbulb, color: Colors.white, size: 18),
+                  const SizedBox(width: 4),
                   Text(
                     '$_hints',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -614,7 +640,6 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
   void _handleTouch(Offset position, BoxConstraints constraints) {
     final cellSize = constraints.maxWidth / gridSize;
     
-    // حساب الصف والعمود بناءً على موقع اللمس
     final col = (position.dx / cellSize).floor();
     final row = (position.dy / cellSize).floor();
     
@@ -634,7 +659,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
         return Transform.scale(
           scale: isFoundWord ? _foundWordScale.value : 1.0,
           child: Container(
-            margin: const EdgeInsets.all(3),
+            margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               gradient: isSelected
                   ? LinearGradient(
@@ -653,7 +678,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
                           end: Alignment.bottomRight,
                           colors: [Colors.blue.shade100, Colors.purple.shade100],
                         ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               boxShadow: isSelected || isFoundWord
                   ? [
                       BoxShadow(
@@ -672,7 +697,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
                   child: Text(
                     grid[row][col],
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: gridSize <= 5 ? 20 : (gridSize <= 7 ? 16 : 14),
                       fontWeight: FontWeight.bold,
                       color: isSelected || isFoundWord 
                           ? Colors.white 
@@ -689,13 +714,13 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
                     ),
                   ),
                 ),
-                if (isSelected && selectedIndex >= 0)
+                if (isSelected && selectedIndex >= 0 && gridSize <= 6)
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: 2,
+                    right: 2,
                     child: Container(
-                      width: 20,
-                      height: 20,
+                      width: 16,
+                      height: 16,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
@@ -710,7 +735,7 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
                         child: Text(
                           '${selectedIndex + 1}',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: Colors.orange.shade700,
                           ),
@@ -796,7 +821,10 @@ class _GameConnectArrowScreenState extends State<GameConnectArrowScreen>
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pop(context, true);
+                  Navigator.pop(context, {
+                    'completed': true,
+                    'score': _score,
+                  });
                 },
                 child: const Text(
                   "العودة للخريطة",
