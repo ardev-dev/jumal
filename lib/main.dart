@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'level_map_screen.dart';
+import 'screens/level_map_screen.dart';
 
 void main() {
   runApp(const MyGameApp());
