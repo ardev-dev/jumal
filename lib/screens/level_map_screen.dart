@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-import '../data/game_level.dart';
+import '../core/services/game_progress_service.dart';
+import '../core/data/game_level.dart';
 import 'game_level_screen.dart';
+import 'settings_screen.dart';
 
 class LevelMapScreen extends StatefulWidget {
   const LevelMapScreen({super.key});
@@ -13,44 +15,56 @@ class LevelMapScreen extends StatefulWidget {
 
 class _LevelMapScreenState extends State<LevelMapScreen>
     with TickerProviderStateMixin {
-  int currentLevel = 1;
-  int totalLevels = GameLevelsDatabase.getTotalLevels();
-  Set<int> completedLevels = {}; // سيتم تحميلها من SharedPreferences
-  int totalScore = 0;
-  
+  late int currentLevel;
+  late int totalLevels;
+  late Set<int> completedLevels;
+  late int totalScore;
+  late int hintsRemaining;
+
   late AnimationController _floatingController;
   late AnimationController _starController;
-  
+  late AnimationController _coinController;
+
   @override
   void initState() {
     super.initState();
+    totalLevels = GameLevelsDatabase.getTotalLevels();
     _loadProgress();
-    
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
     _floatingController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _starController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat();
+
+    _coinController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
   }
-  
+
   void _loadProgress() {
-    // هنا يمكنك تحميل التقدم من SharedPreferences
-    // مثال للتجربة:
+    final stats = progressService.getStatistics();
     setState(() {
-      completedLevels = {1, 2};
-      currentLevel = 3;
-      totalScore = 340;
+      currentLevel = stats['currentLevel'] as int;
+      totalScore = stats['totalScore'] as int;
+      hintsRemaining = stats['hintsRemaining'] as int;
+      completedLevels = progressService.getCompletedLevels();
     });
   }
-  
+
   @override
   void dispose() {
     _floatingController.dispose();
     _starController.dispose();
+    _coinController.dispose();
     super.dispose();
   }
 
@@ -73,9 +87,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
           child: Column(
             children: [
               _buildHeader(),
-              Expanded(
-                child: _buildLevelMap(),
-              ),
+              Expanded(child: _buildLevelMap()),
             ],
           ),
         ),
@@ -91,36 +103,91 @@ class _LevelMapScreenState extends State<LevelMapScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.purple.shade600, Colors.purple.shade800],
+              // النقاط
+              GestureDetector(
+                onTap: _showStatistics,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.shade300,
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.purple.shade600, Colors.purple.shade800],
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.stars, color: Colors.amber, size: 24),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$totalScore',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.shade300,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.stars, color: Colors.amber, size: 24),
+                      const SizedBox(width: 8),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: Text(
+                          '$totalScore',
+                          key: ValueKey(totalScore),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+
+              // التلميحات
+              GestureDetector(
+                onTap: _showHintsDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.orange.shade400, Colors.orange.shade600],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.shade300,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.lightbulb,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$hintsRemaining',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // الإعدادات
               IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(8),
@@ -136,82 +203,85 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                   ),
                   child: const Icon(Icons.settings, color: Colors.deepPurple),
                 ),
-                onPressed: () {},
+                onPressed: _showSettingsDialog,
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          _buildProgressCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCard() {
+    final progress = currentLevel / totalLevels;
+    final gridSize = GameLevelsDatabase.getGridSizeForLevel(currentLevel);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'التقدم',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'المستوى $currentLevel من $totalLevels',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple.shade700,
-                      ),
-                    ),
-                    Text(
-                      'شبكة ${GameLevelsDatabase.getGridSizeForLevel(currentLevel)}×${GameLevelsDatabase.getGridSizeForLevel(currentLevel)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'التقدم',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: CircularProgressIndicator(
-                        value: currentLevel / totalLevels,
-                        strokeWidth: 6,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.green.shade400,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${((currentLevel / totalLevels) * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple.shade700,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  'المستوى $currentLevel من $totalLevels',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple.shade700,
+                  ),
+                ),
+                Text(
+                  'شبكة $gridSize×$gridSize',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 6,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.green.shade400,
+                  ),
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple.shade700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -223,7 +293,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: Column(
         children: [
-          // رسم المسار المتعرج
           for (int row = 0; row < (totalLevels / 3).ceil(); row++)
             _buildLevelRow(row),
         ],
@@ -234,33 +303,23 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   Widget _buildLevelRow(int row) {
     List<Widget> levels = [];
     bool isEvenRow = row % 2 == 0;
-    
-    // 3 مستويات في كل صف
+
     for (int i = 0; i < 3; i++) {
       int levelNumber = (row * 3) + i + 1;
       if (levelNumber > totalLevels) break;
-      
+
       int position = isEvenRow ? i : (2 - i);
-      
-      levels.add(
-        Expanded(
-          child: _buildLevelNode(levelNumber, position),
-        ),
-      );
+      levels.add(Expanded(child: _buildLevelNode(levelNumber, position)));
     }
-    
+
     if (!isEvenRow) {
       levels = levels.reversed.toList();
     }
-    
+
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: levels,
-        ),
-        if (row < (totalLevels / 3).ceil() - 1)
-          _buildPathConnector(isEvenRow),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: levels),
+        if (row < (totalLevels / 3).ceil() - 1) _buildPathConnector(isEvenRow),
       ],
     );
   }
@@ -284,11 +343,17 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     bool isCompleted = completedLevels.contains(levelNumber);
     bool isLocked = levelNumber > currentLevel;
     bool isCurrent = levelNumber == currentLevel;
-    
-    // الحصول على معلومات المستوى
+
     final levelData = GameLevelsDatabase.getLevel(levelNumber);
     final gridSize = levelData?.gridSize ?? 3;
-    
+
+    // الحصول على عدد النجوم إذا كان المستوى مكتملاً
+    int stars = 0;
+    if (isCompleted) {
+      final levelProgress = progressService.getLevelProgress(levelNumber);
+      stars = levelProgress?.stars ?? 0;
+    }
+
     return AnimatedBuilder(
       animation: _floatingController,
       builder: (context, child) {
@@ -296,7 +361,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
         if (isCurrent) {
           offset = sin(_floatingController.value * 2 * pi) * 8;
         }
-        
+
         return Transform.translate(
           offset: Offset(0, offset),
           child: GestureDetector(
@@ -319,8 +384,12 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                           animation: _starController,
                           builder: (context, child) {
                             return Container(
-                              width: 100 + (sin(_starController.value * 2 * pi) * 10),
-                              height: 100 + (sin(_starController.value * 2 * pi) * 10),
+                              width:
+                                  100 +
+                                  (sin(_starController.value * 2 * pi) * 10),
+                              height:
+                                  100 +
+                                  (sin(_starController.value * 2 * pi) * 10),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 boxShadow: [
@@ -334,7 +403,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                             );
                           },
                         ),
-                      
+
                       // المستوى نفسه
                       Container(
                         width: 80,
@@ -344,27 +413,30 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: isLocked
+                            colors: isCompleted
+                                ? [Colors.green.shade400, Colors.green.shade600]
+                                : isLocked
                                 ? [Colors.grey.shade400, Colors.grey.shade600]
-                                : isCompleted
-                                    ? [Colors.green.shade400, Colors.green.shade600]
-                                    : isCurrent
-                                        ? [Colors.orange.shade400, Colors.deepOrange.shade600]
-                                        : [Colors.blue.shade400, Colors.purple.shade500],
+                                : isCurrent
+                                ? [
+                                    Colors.orange.shade400,
+                                    Colors.deepOrange.shade600,
+                                  ]
+                                : [
+                                    Colors.blue.shade400,
+                                    Colors.purple.shade500,
+                                  ],
                           ),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 4,
-                          ),
+                          border: Border.all(color: Colors.white, width: 4),
                           boxShadow: [
                             BoxShadow(
                               color: isLocked
                                   ? Colors.grey.shade300
                                   : isCompleted
-                                      ? Colors.green.shade300
-                                      : isCurrent
-                                          ? Colors.orange.shade300
-                                          : Colors.purple.shade300,
+                                  ? Colors.green.shade300
+                                  : isCurrent
+                                  ? Colors.orange.shade300
+                                  : Colors.purple.shade300,
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -398,13 +470,16 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                           ],
                         ),
                       ),
-                      
-                      // حجم الشبكة في الأعلى
+
+                      // حجم الشبكة
                       if (!isLocked)
                         Positioned(
                           top: -8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
@@ -416,7 +491,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                               ],
                             ),
                             child: Text(
-                              '${gridSize}×$gridSize',
+                              '$gridSize×$gridSize',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -425,9 +500,9 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                             ),
                           ),
                         ),
-                      
+
                       // النجوم للمستوى المكتمل
-                      if (isCompleted)
+                      if (isCompleted && stars > 0)
                         Positioned(
                           bottom: -5,
                           child: Row(
@@ -435,16 +510,18 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                             children: List.generate(3, (index) {
                               return Transform.scale(
                                 scale: 0.8,
-                                child: const Icon(
+                                child: Icon(
                                   Icons.star,
-                                  color: Colors.amber,
+                                  color: index < stars
+                                      ? Colors.amber
+                                      : Colors.grey.shade300,
                                   size: 20,
                                 ),
                               );
                             }),
                           ),
                         ),
-                      
+
                       // أيقونة التشغيل للمستوى الحالي
                       if (isCurrent)
                         Positioned(
@@ -475,16 +552,14 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                     isCompleted
                         ? 'مكتمل'
                         : isCurrent
-                            ? 'العب الآن'
-                            : isLocked
-                                ? 'مقفل'
-                                : 'متاح',
+                        ? 'العب الآن'
+                        : isLocked
+                        ? 'مقفل'
+                        : 'متاح',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isLocked
-                          ? Colors.grey.shade600
-                          : Colors.white,
+                      color: isLocked ? Colors.grey.shade600 : Colors.white,
                       shadows: const [
                         Shadow(
                           color: Colors.black26,
@@ -507,30 +582,131 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GameConnectArrowScreen(levelNumber: levelNumber),
+        builder: (context) => NatureWordGameScreen(levelNumber: levelNumber),
       ),
     );
-    
+
     if (result != null && result is Map<String, dynamic>) {
       if (result['completed'] == true) {
-        setState(() {
-          completedLevels.add(levelNumber);
-          totalScore += (result['score'] as int? ?? 0);
-          
-          if (levelNumber == currentLevel && currentLevel < totalLevels) {
-            currentLevel++;
-          }
-        });
-        
-        // هنا يمكنك حفظ التقدم في SharedPreferences
-        _saveProgress();
+        _coinController.forward(from: 0);
+        _loadProgress();
       }
     }
   }
-  
-  void _saveProgress() {
-    // حفظ التقدم في SharedPreferences
-    // SharedPreferences implementation here
+
+  void _showStatistics() {
+    final stats = progressService.getStatistics();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'الإحصائيات',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildStatItem(
+                Icons.emoji_events,
+                'المستويات المكتملة',
+                '${stats['levelsCompleted']}',
+                Colors.green,
+              ),
+              _buildStatItem(
+                Icons.star,
+                'المستويات المثالية',
+                '${stats['perfectLevels']}',
+                Colors.amber,
+              ),
+              _buildStatItem(
+                Icons.timer,
+                'وقت اللعب',
+                '${(stats['totalPlayTime'] / 60).round()} دقيقة',
+                Colors.blue,
+              ),
+              _buildStatItem(
+                Icons.trending_up,
+                'متوسط النقاط',
+                '${stats['averageScore']}',
+                Colors.purple,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'إغلاق',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHintsDialog() {
+    // يمكن إضافة نافذة لشراء التلميحات
+  }
+
+  void _showSettingsDialog() {
+    // يمكن إضافة نافذة الإعدادات
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsScreen()),
+    );
   }
 }
 
@@ -556,7 +732,7 @@ class PathConnectorPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-    
+
     if (isEvenRow) {
       path.moveTo(size.width * 0.3, 0);
       path.quadraticBezierTo(
@@ -583,7 +759,7 @@ class PathConnectorPainter extends CustomPainter {
     final dashWidth = 8.0;
     final dashSpace = 4.0;
     final metrics = path.computeMetrics();
-    
+
     for (final metric in metrics) {
       double distance = 0.0;
       while (distance < metric.length) {
