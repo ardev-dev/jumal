@@ -6,6 +6,7 @@ class GameDatabase {
       // المستويات 1-4: شبكة 3×3 (9 أحرف، 3 كلمات)
       // ═══════════════════════════════════════════════════════════
       1: LevelData(
+        levelNumber: 1,
         gridSize: 3,
         questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
         words: ['أنف', 'موز', 'قطة'],
@@ -13,6 +14,7 @@ class GameDatabase {
       ),
 
       2: LevelData(
+        levelNumber: 2,
         gridSize: 3,
         questions: ['وقت الظهيرة', 'طائر يصيح فجراً', 'مصدر الضوء ليلاً'],
         words: ['ظهر', 'ديك', 'قمر'],
@@ -20,6 +22,7 @@ class GameDatabase {
       ),
 
       3: LevelData(
+        levelNumber: 3,
         gridSize: 3,
         questions: ['عكس ليل', 'رقم بعد ٢'],
         words: ['نهار', 'ثلاثة'], // 5 + 4 = 9 أحرف
@@ -27,6 +30,7 @@ class GameDatabase {
       ),
 
       4: LevelData(
+        levelNumber: 4,
         gridSize: 3,
         questions: ['عاصمة مصر', 'كوكب أحمر'],
         words: ['قاهرة', 'مريخ'],
@@ -37,6 +41,7 @@ class GameDatabase {
       // المستويات 5-9: شبكة 4×4 (16 حرف، 4 كلمات)
       // ═══════════════════════════════════════════════════════════
       5: LevelData(
+        levelNumber: 5,
         gridSize: 4,
         questions: [
           'أكبر قارة في العالم',
@@ -66,6 +71,7 @@ class GameDatabase {
       ),
 
       6: LevelData(
+        levelNumber: 6,
         gridSize: 4,
         questions: [
           'كتاب المسلمين المقدس',
@@ -95,6 +101,7 @@ class GameDatabase {
       ),
 
       7: LevelData(
+        levelNumber: 7,
         gridSize: 4,
         questions: [
           'يوم الراحة الأسبوعية',
@@ -124,6 +131,7 @@ class GameDatabase {
       ),
 
       8: LevelData(
+        levelNumber: 8,
         gridSize: 4,
         questions: ['جهاز للاتصال', 'مدينة الضباب', 'شهر الصيام', 'كوكب الأرض'],
         words: ['هاتف', 'لندن', 'رمضان', 'كوكب'],
@@ -148,6 +156,7 @@ class GameDatabase {
       ),
 
       9: LevelData(
+        levelNumber: 9,
         gridSize: 4,
         questions: ['ساعة الحائط', 'رياضة بالكرة', 'حاسة التذوق', 'بيت النحل'],
         words: ['منبه', 'تنس', 'لسان', 'خلية'],
@@ -175,6 +184,7 @@ class GameDatabase {
       // المستويات 10-14: شبكة 5×5 (25 حرف، 5 كلمات)
       // ═══════════════════════════════════════════════════════════
       10: LevelData(
+        levelNumber: 10,
         gridSize: 5,
         questions: [
           'عاصمة إيطاليا',
@@ -214,6 +224,7 @@ class GameDatabase {
       ),
 
       11: LevelData(
+        levelNumber: 11,
         gridSize: 5,
         questions: [
           'جبل أعلى قمة',
@@ -253,6 +264,7 @@ class GameDatabase {
       ),
 
       12: LevelData(
+        levelNumber: 12,
         gridSize: 5,
         questions: [
           'قارة الكنغر',
@@ -292,6 +304,7 @@ class GameDatabase {
       ),
 
       13: LevelData(
+        levelNumber: 13,
         gridSize: 5,
         questions: [
           'أصغر قارة',
@@ -331,6 +344,7 @@ class GameDatabase {
       ),
 
       14: LevelData(
+        levelNumber: 14,
         gridSize: 5,
         questions: [
           'عاصمة ألمانيا',
@@ -421,12 +435,14 @@ class GameDatabase {
 }
 
 class LevelData {
+  final int levelNumber;
   final int gridSize;
   final List<String> questions; // الأسئلة بعدد الكلمات
   final List<String> words; // الكلمات (الإجابات)
   final List<String> gridLetters; // الأحرف المستخدمة في الشبكة
 
   LevelData({
+    required this.levelNumber,
     required this.gridSize,
     required this.questions,
     required this.words,
@@ -480,5 +496,15 @@ class LevelData {
   @override
   String toString() {
     return 'LevelData(gridSize: $gridSize, totalWords: $totalWords, totalLetters: $totalLetters, difficulty: $difficulty)';
+  }
+
+  factory LevelData.empty() {
+    return LevelData(
+      levelNumber: 0,
+      gridSize: 3,
+      questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
+      words: ['أنف', 'موز', 'قطة'],
+      gridLetters: ['أ', 'ن', 'ف', 'م', 'و', 'ز', 'ق', 'ط', 'ة'],
+    );
   }
 }

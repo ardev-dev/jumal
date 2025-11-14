@@ -7,8 +7,8 @@ import '../core/services/game_progress_service.dart';
 import '../core/data/game_database.dart';
 
 class GameLevelScreen extends StatefulWidget {
-  final int levelNumber;
-  const GameLevelScreen({super.key, required this.levelNumber});
+  const GameLevelScreen({super.key, required this.level});
+  final LevelData level;
 
   @override
   State<GameLevelScreen> createState() => _GameLevelScreenState();
@@ -16,12 +16,12 @@ class GameLevelScreen extends StatefulWidget {
 
 class _GameLevelScreenState extends State<GameLevelScreen>
     with TickerProviderStateMixin {
+  late LevelData levelData;
   late List<String> questions;
   late List<String> words;
   late List<String> gridLetters;
   late List<bool> wordFound;
   late List<List<String>> grid;
-  late int gridSize;
 
   List<GridPosition> selectedPositions = [];
   String currentWord = '';
@@ -56,19 +56,11 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   }
 
   void _initializeLevel() {
-    final levelData = GameDatabase.getLevel(widget.levelNumber);
+    levelData = widget.level;
 
-    if (levelData == null) {
-      gridSize = 4;
-      questions = ['سؤال 1', 'سؤال 2', 'سؤال 3', 'سؤال 4'];
-      words = ['كلمة', 'كلم', 'لمة', 'كلة'];
-      gridLetters = List.generate(16, (_) => 'ك');
-    } else {
-      gridSize = levelData.gridSize;
-      questions = levelData.questions;
-      words = levelData.words;
-      gridLetters = levelData.gridLetters;
-    }
+    questions = levelData.questions;
+    words = levelData.words;
+    gridLetters = levelData.gridLetters;
 
     wordFound = List.generate(words.length, (_) => false);
     _generateGridFromLetters();
@@ -76,9 +68,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
   void _generateGridFromLetters() {
     // إنشاء الشبكة من الأحرف المعطاة
-    grid = List.generate(gridSize, (i) {
-      return List.generate(gridSize, (j) {
-        final index = i * gridSize + j;
+    grid = List.generate(levelData.gridSize, (i) {
+      return List.generate(levelData.gridSize, (j) {
+        final index = i * levelData.gridSize + j;
         return index < gridLetters.length ? gridLetters[index] : '';
       });
     });
@@ -105,8 +97,8 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       [-1, 1], // قطري يمين-أعلى
     ];
 
-    for (int row = 0; row < gridSize; row++) {
-      for (int col = 0; col < gridSize; col++) {
+    for (int row = 0; row < levelData.gridSize; row++) {
+      for (int col = 0; col < levelData.gridSize; col++) {
         for (var dir in directions) {
           final positions = _checkWordAtPosition(
             word,
@@ -138,9 +130,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       final newCol = col + (i * dCol);
 
       if (newRow < 0 ||
-          newRow >= gridSize ||
+          newRow >= levelData.gridSize ||
           newCol < 0 ||
-          newCol >= gridSize) {
+          newCol >= levelData.gridSize) {
         return [];
       }
 
@@ -466,7 +458,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     _stopwatch.stop();
 
     await progressService.completeLevel(
-      levelNumber: widget.levelNumber,
+      levelNumber: widget.level.levelNumber,
       score: _score,
       foundWords: foundWords.toList(),
       timeSpent: _elapsedSeconds,
@@ -481,7 +473,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   }
 
   void _showSuccessDialog() {
-    final levelProgress = progressService.getLevelProgress(widget.levelNumber);
+    final levelProgress = progressService.getLevelProgress(
+      widget.level.levelNumber,
+    );
     final stars = levelProgress?.stars ?? 1;
 
     showDialog(
@@ -537,7 +531,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                "لقد أكملت المستوى ${widget.levelNumber}",
+                "لقد أكملت المستوى ${widget.level}",
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
@@ -732,7 +726,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ],
             ),
             child: Text(
-              'المستوى ${widget.levelNumber}',
+              'المستوى ${widget.level.levelNumber}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -988,10 +982,10 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                     },
                     onPanEnd: (_) => _onRelease(),
                     child: Column(
-                      children: List.generate(gridSize, (row) {
+                      children: List.generate(levelData.gridSize, (row) {
                         return Expanded(
                           child: Row(
-                            children: List.generate(gridSize, (col) {
+                            children: List.generate(levelData.gridSize, (col) {
                               return Expanded(child: _buildGridCell(row, col));
                             }),
                           ),
@@ -1009,7 +1003,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   }
 
   void _handleTouch(Offset position, BoxConstraints constraints) {
-    final cellSize = constraints.maxWidth / gridSize;
+    final cellSize = constraints.maxWidth / levelData.gridSize;
 
     // حساب العمود بناءً على اتجاه النص
     final textDirection = Directionality.of(context);
@@ -1017,7 +1011,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
     if (textDirection == TextDirection.rtl) {
       // في حالة RTL، نعكس حساب العمود
-      col = (gridSize - 1 - (position.dx / cellSize).floor());
+      col = (levelData.gridSize - 1 - (position.dx / cellSize).floor());
     } else {
       // في حالة LTR، الحساب الطبيعي
       col = (position.dx / cellSize).floor();
@@ -1025,7 +1019,10 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
     final row = (position.dy / cellSize).floor();
 
-    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+    if (row >= 0 &&
+        row < levelData.gridSize &&
+        col >= 0 &&
+        col < levelData.gridSize) {
       _onCellTouch(row, col);
     }
   }
@@ -1105,18 +1102,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        // gradient: isSelected
-        //     ? LinearGradient(
-        //         colors: [const Color(0xFF4DD4AC), const Color(0xFF2E7D6A)],
-        //       )
-        //     : isUsed || isPartOfFoundWord
-        //     ? LinearGradient(
-        //         colors: [
-        //           const Color(0xFF4CAF50).withOpacity(0.7),
-        //           const Color(0xFF66BB6A).withOpacity(0.7),
-        //         ],
-        //       )
-        //     : LinearGradient(colors: [Colors.white, Colors.white]),
         color: isSelected
             ? const Color(0xFF4DD4AC)
             : isUsed || isPartOfFoundWord
@@ -1128,9 +1113,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
         child: Text(
           grid[row][col],
           style: TextStyle(
-            fontSize: gridSize <= 4
+            fontSize: levelData.gridSize <= 4
                 ? 32
-                : gridSize <= 6
+                : levelData.gridSize <= 6
                 ? 24
                 : 20,
             fontWeight: FontWeight.bold,

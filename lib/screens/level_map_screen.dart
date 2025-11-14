@@ -222,14 +222,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20.0),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,7 +360,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
           child: GestureDetector(
             onTap: () {
               if (!isLocked) {
-                _navigateToLevel(levelNumber);
+                _navigateToLevel(levelData ?? LevelData.empty());
               }
             },
             child: Container(
@@ -578,12 +571,10 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     );
   }
 
-  void _navigateToLevel(int levelNumber) async {
+  void _navigateToLevel(LevelData level) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => GameLevelScreen(levelNumber: levelNumber),
-      ),
+      MaterialPageRoute(builder: (context) => GameLevelScreen(level: level)),
     );
 
     if (result != null && result is Map<String, dynamic>) {
