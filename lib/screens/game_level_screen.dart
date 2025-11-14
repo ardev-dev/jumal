@@ -1105,66 +1105,42 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        gradient: isSelected
-            ? LinearGradient(
-                colors: [const Color(0xFF4DD4AC), const Color(0xFF2E7D6A)],
-              )
+        // gradient: isSelected
+        //     ? LinearGradient(
+        //         colors: [const Color(0xFF4DD4AC), const Color(0xFF2E7D6A)],
+        //       )
+        //     : isUsed || isPartOfFoundWord
+        //     ? LinearGradient(
+        //         colors: [
+        //           const Color(0xFF4CAF50).withOpacity(0.7),
+        //           const Color(0xFF66BB6A).withOpacity(0.7),
+        //         ],
+        //       )
+        //     : LinearGradient(colors: [Colors.white, Colors.white]),
+        color: isSelected
+            ? const Color(0xFF4DD4AC)
             : isUsed || isPartOfFoundWord
-            ? LinearGradient(
-                colors: [
-                  const Color(0xFF4CAF50).withOpacity(0.7),
-                  const Color(0xFF66BB6A).withOpacity(0.7),
-                ],
-              )
-            : LinearGradient(colors: [Colors.white, Colors.white]),
+            ? const Color(0xFF4CAF50).withOpacity(0.7)
+            : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: isUsed
-            ? Border.all(color: const Color(0xFF4CAF50), width: 2)
-            : null,
-        boxShadow: [
-          if (isSelected || isPartOfFoundWord)
-            BoxShadow(
-              color:
-                  (isSelected
-                          ? const Color(0xFF4DD4AC)
-                          : const Color(0xFF4CAF50))
-                      .withOpacity(0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-        ],
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Text(
-              grid[row][col],
-              style: TextStyle(
-                fontSize: gridSize <= 4
-                    ? 32
-                    : gridSize <= 6
-                    ? 24
-                    : 20,
-                fontWeight: FontWeight.bold,
-                color: isSelected || isPartOfFoundWord || isUsed
-                    ? Colors.white
-                    : const Color(0xFF5B6B8C),
-                decorationColor: Colors.white,
-                decorationThickness: 2,
-              ),
-            ),
+      child: Center(
+        child: Text(
+          grid[row][col],
+          style: TextStyle(
+            fontSize: gridSize <= 4
+                ? 32
+                : gridSize <= 6
+                ? 24
+                : 20,
+            fontWeight: FontWeight.bold,
+            color: isSelected || isPartOfFoundWord || isUsed
+                ? Colors.white
+                : const Color(0xFF5B6B8C),
+            decorationColor: Colors.white,
+            decorationThickness: 2,
           ),
-          if (isUsed)
-            Positioned(
-              top: 2,
-              right: 2,
-              child: Icon(
-                Icons.lock,
-                size: 12,
-                color: Colors.white.withOpacity(0.7),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
