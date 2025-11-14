@@ -74,14 +74,14 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF4DD4AC).withOpacity(0.3),
-                const Color(0xFF5B9FE3).withOpacity(0.3),
-                const Color(0xFFE8B4F0).withOpacity(0.2),
-              ],
-            ),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF4DD4AC).withOpacity(0.3),
+              const Color(0xFF5B9FE3).withOpacity(0.3),
+              const Color(0xFFE8B4F0).withOpacity(0.2),
+            ],
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -216,7 +216,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
 
   Widget _buildProgressCard() {
     final progress = currentLevel / totalLevels;
-    final gridSize = GameDatabase.getGridSizeForLevel(currentLevel);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -243,10 +242,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                     fontWeight: FontWeight.bold,
                     color: Colors.deepPurple.shade700,
                   ),
-                ),
-                Text(
-                  'شبكة $gridSize×$gridSize',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -338,14 +333,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     bool isCurrent = levelNumber == currentLevel;
 
     final levelData = GameDatabase.getLevel(levelNumber);
-    final gridSize = levelData?.gridSize ?? 3;
-
-    // الحصول على عدد النجوم إذا كان المستوى مكتملاً
-    int stars = 0;
-    if (isCompleted) {
-      final levelProgress = progressService.getLevelProgress(levelNumber);
-      stars = levelProgress?.stars ?? 0;
-    }
 
     return AnimatedBuilder(
       animation: _floatingController,
@@ -360,7 +347,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
           child: GestureDetector(
             onTap: () {
               if (!isLocked) {
-                _navigateToLevel(levelData ?? LevelData.empty());
+                _navigateToLevel(levelData ?? LevelDataModel.empty());
               }
             },
             child: Container(
@@ -463,58 +450,6 @@ class _LevelMapScreenState extends State<LevelMapScreen>
                           ],
                         ),
                       ),
-
-                      // حجم الشبكة
-                      if (!isLocked)
-                        Positioned(
-                          top: -8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              '$gridSize×$gridSize',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple.shade700,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      // النجوم للمستوى المكتمل
-                      if (isCompleted && stars > 0)
-                        Positioned(
-                          bottom: -5,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(3, (index) {
-                              return Transform.scale(
-                                scale: 0.8,
-                                child: Icon(
-                                  Icons.star,
-                                  color: index < stars
-                                      ? Colors.amber
-                                      : Colors.grey.shade300,
-                                  size: 20,
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-
                       // أيقونة التشغيل للمستوى الحالي
                       if (isCurrent)
                         Positioned(
@@ -571,7 +506,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     );
   }
 
-  void _navigateToLevel(LevelData level) async {
+  void _navigateToLevel(LevelDataModel level) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => GameLevelScreen(level: level)),

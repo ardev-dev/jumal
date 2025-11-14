@@ -1,22 +1,24 @@
 class GameDatabase {
   // قاعدة البيانات الكاملة للمستويات
-  static Map<int, LevelData> getAllLevels() {
+  static Map<int, LevelDataModel> getAllLevels() {
     return {
-      // ═══════════════════════════════════════════════════════════
-      // المستويات 1-4: شبكة 3×3 (9 أحرف، 3 كلمات)
-      // ═══════════════════════════════════════════════════════════
-      1: LevelData(
+      1: LevelDataModel(
         levelNumber: 1,
-        questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
-        words: ['أنف', 'موز', 'قطة'],
+        questions: [
+          'من يقدم الأخبار أو البرامج على التلفاز',
+          'من لا يحب بذل الجهد أو العمل',
+          'حشرة تعمل في مستعمرات منظمة',
+        ],
+        words: ['مذيع', 'كسول', 'نملة'],
         gridLetters: [
-          ['أ', 'ن', 'ف'],
-          ['م', 'و', 'ز'],
-          ['ق', 'ط', 'ة'],
+          ['ذ', 'م', 'ة'],
+          ['ي', 'م', 'ل'],
+          ['ع', 'ن', 'ك'],
+          ['ل', 'و', 'س'],
         ],
       ),
 
-      2: LevelData(
+      2: LevelDataModel(
         levelNumber: 2,
         questions: ['وقت الظهيرة', 'طائر يصيح فجراً', 'مصدر الضوء ليلاً'],
         words: ['ظهر', 'ديك', 'قمر'],
@@ -27,7 +29,7 @@ class GameDatabase {
         ],
       ),
 
-      3: LevelData(
+      3: LevelDataModel(
         levelNumber: 3,
         questions: ['عكس ليل', 'رقم بعد ٢'],
         words: ['نهار', 'ثلاثة'],
@@ -38,7 +40,7 @@ class GameDatabase {
         ],
       ),
 
-      4: LevelData(
+      4: LevelDataModel(
         levelNumber: 4,
         questions: ['عاصمة مصر', 'كوكب أحمر'],
         words: ['قاهرة', 'مريخ'],
@@ -49,10 +51,7 @@ class GameDatabase {
         ],
       ),
 
-      // ═══════════════════════════════════════════════════════════
-      // المستويات 5-9: شبكة 4×4 (16 حرف، 4 كلمات)
-      // ═══════════════════════════════════════════════════════════
-      5: LevelData(
+      5: LevelDataModel(
         levelNumber: 5,
         questions: [
           'أكبر قارة في العالم',
@@ -69,7 +68,7 @@ class GameDatabase {
         ],
       ),
 
-      6: LevelData(
+      6: LevelDataModel(
         levelNumber: 6,
         questions: [
           'كتاب المسلمين المقدس',
@@ -86,7 +85,7 @@ class GameDatabase {
         ],
       ),
 
-      7: LevelData(
+      7: LevelDataModel(
         levelNumber: 7,
         questions: [
           'يوم الراحة الأسبوعية',
@@ -103,7 +102,7 @@ class GameDatabase {
         ],
       ),
 
-      8: LevelData(
+      8: LevelDataModel(
         levelNumber: 8,
         questions: ['جهاز للاتصال', 'مدينة الضباب', 'شهر الصيام', 'كوكب الأرض'],
         words: ['هاتف', 'لندن', 'رمضان', 'كوكب'],
@@ -115,7 +114,7 @@ class GameDatabase {
         ],
       ),
 
-      9: LevelData(
+      9: LevelDataModel(
         levelNumber: 9,
         questions: ['ساعة الحائط', 'رياضة بالكرة', 'حاسة التذوق', 'بيت النحل'],
         words: ['منبه', 'تنس', 'لسان', 'خلية'],
@@ -126,11 +125,7 @@ class GameDatabase {
           ['ل', 'ي', 'ة', 'م'],
         ],
       ),
-
-      // ═══════════════════════════════════════════════════════════
-      // المستويات 10-14: شبكة 5×5 (25 حرف، 5 كلمات)
-      // ═══════════════════════════════════════════════════════════
-      10: LevelData(
+      10: LevelDataModel(
         levelNumber: 10,
         questions: [
           'عاصمة إيطاليا',
@@ -149,7 +144,7 @@ class GameDatabase {
         ],
       ),
 
-      11: LevelData(
+      11: LevelDataModel(
         levelNumber: 11,
         questions: [
           'جبل أعلى قمة',
@@ -168,7 +163,7 @@ class GameDatabase {
         ],
       ),
 
-      12: LevelData(
+      12: LevelDataModel(
         levelNumber: 12,
         questions: [
           'قارة الكنغر',
@@ -187,7 +182,7 @@ class GameDatabase {
         ],
       ),
 
-      13: LevelData(
+      13: LevelDataModel(
         levelNumber: 13,
         questions: [
           'أصغر قارة',
@@ -206,7 +201,7 @@ class GameDatabase {
         ],
       ),
 
-      14: LevelData(
+      14: LevelDataModel(
         levelNumber: 14,
         questions: [
           'عاصمة ألمانيا',
@@ -228,7 +223,7 @@ class GameDatabase {
   }
 
   // الحصول على بيانات مستوى محدد
-  static LevelData? getLevel(int levelNumber) {
+  static LevelDataModel? getLevel(int levelNumber) {
     return getAllLevels()[levelNumber];
   }
 
@@ -242,36 +237,12 @@ class GameDatabase {
     return getAllLevels().containsKey(levelNumber);
   }
 
-  // الحصول على حجم الشبكة لمستوى معين
-  static int getGridSizeForLevel(int levelNumber) {
-    final level = getAllLevels()[levelNumber];
-    return level?.gridSize ?? 0;
-  }
-
-  // الحصول على نطاق المستويات لحجم شبكة معين
-  static List<int> getLevelsForGridSize(int gridSize) {
-    List<int> levels = [];
-    for (var entry in getAllLevels().entries) {
-      if (entry.value.gridSize == gridSize) {
-        levels.add(entry.key);
-      }
-    }
-    return levels;
-  }
-
   // إحصائيات عن المستويات
   static Map<String, dynamic> getStatistics() {
     final allLevels = getAllLevels();
     final gridSizes = <int, int>{};
     int minSize = 999;
     int maxSize = 0;
-
-    for (var level in allLevels.values) {
-      final size = level.gridSize;
-      gridSizes[size] = (gridSizes[size] ?? 0) + 1;
-      if (size < minSize) minSize = size;
-      if (size > maxSize) maxSize = size;
-    }
 
     return {
       'totalLevels': allLevels.length,
@@ -282,13 +253,14 @@ class GameDatabase {
   }
 }
 
-class LevelData {
+class LevelDataModel {
   final int levelNumber;
   final List<String> questions; // الأسئلة بعدد الكلمات
   final List<String> words; // الكلمات (الإجابات)
-  final List<List<String>> gridLetters; // الأحرف المستخدمة في الشبكة (قوائم متداخلة)
+  final List<List<String>>
+  gridLetters; // الأحرف المستخدمة في الشبكة (قوائم متداخلة)
 
-  LevelData({
+  LevelDataModel({
     required this.levelNumber,
     required this.questions,
     required this.words,
@@ -299,46 +271,30 @@ class LevelData {
       questions.length == words.length,
       'عدد الأسئلة يجب أن يساوي عدد الكلمات',
     );
-    
-    // التحقق من أن الشبكة مربعة
-    assert(
-      gridLetters.isNotEmpty && gridLetters.every((row) => row.length == gridLetters.length),
-      'الشبكة يجب أن تكون مربعة (عدد الصفوف = عدد الأعمدة)',
-    );
-    
-    assert(
-      words.length <= gridSize * gridSize,
-      'عدد الكلمات لا يمكن أن يتجاوز عدد الخلايا في الشبكة',
-    );
   }
 
-  // حجم الشبكة (يُستنتج من عدد الصفوف)
-  int get gridSize => gridLetters.length;
+  double get horizontal {
+    switch (gridLetters.first.length) {
+      case 3:
+        return 48.0;
+      case 4:
+        return 40.0;
+      case 5:
+        return 32.0;
+      case 6:
+        return 24.0;
+      case 7:
+        return 16.0;
+      default:
+        return 8.0;
+    }
+  }
 
   // عدد الكلمات الإجمالي
   int get totalWords => words.length;
 
   // عدد الأسئلة
   int get totalQuestions => questions.length;
-
-  // عدد الأحرف
-  int get totalLetters => gridSize * gridSize;
-
-  // الحصول على حرف في موقع محدد
-  String getLetterAt(int row, int col) {
-    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
-      return gridLetters[row][col];
-    }
-    return '';
-  }
-
-  // الصعوبة بناءً على حجم الشبكة
-  String get difficulty {
-    if (gridSize <= 3) return 'سهل';
-    if (gridSize <= 5) return 'متوسط';
-    if (gridSize <= 7) return 'صعب';
-    return 'خبير';
-  }
 
   // النقاط المتوقعة للمستوى
   int get expectedScore {
@@ -353,13 +309,8 @@ class LevelData {
     return {};
   }
 
-  @override
-  String toString() {
-    return 'LevelData(levelNumber: $levelNumber, gridSize: $gridSize, totalWords: $totalWords, totalLetters: $totalLetters, difficulty: $difficulty)';
-  }
-
-  factory LevelData.empty() {
-    return LevelData(
+  factory LevelDataModel.empty() {
+    return LevelDataModel(
       levelNumber: 0,
       questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
       words: ['أنف', 'موز', 'قطة'],
@@ -369,5 +320,15 @@ class LevelData {
         ['ق', 'ط', 'ة'],
       ],
     );
+  }
+
+  String getLetterAt(int row, int col) {
+    if (row >= 0 &&
+        row < gridLetters.length &&
+        col >= 0 &&
+        col < gridLetters[row].length) {
+      return gridLetters[row][col];
+    }
+    return '';
   }
 }

@@ -5,10 +5,14 @@ import 'package:flutter/services.dart';
 
 import '../core/services/game_progress_service.dart';
 import '../core/data/game_database.dart';
+import '../widgets/build_action_button.dart';
+import '../widgets/show_exit_dialog.dart';
+import '../widgets/show_hint_dialog.dart';
+import '../widgets/show_success_dialog.dart';
 
 class GameLevelScreen extends StatefulWidget {
   const GameLevelScreen({super.key, required this.level});
-  final LevelData level;
+  final LevelDataModel level;
 
   @override
   State<GameLevelScreen> createState() => _GameLevelScreenState();
@@ -16,7 +20,7 @@ class GameLevelScreen extends StatefulWidget {
 
 class _GameLevelScreenState extends State<GameLevelScreen>
     with TickerProviderStateMixin {
-  late LevelData levelData;
+  late LevelDataModel levelData;
   late List<bool> wordFound;
 
   List<GridPosition> selectedPositions = [];
@@ -34,13 +38,15 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   final Map<String, List<GridPosition>> _wordPositionsMap = {};
   Set<String> foundWords = {};
 
-  // الخلايا المستخدمة (لمنع إعادة استخدامها)
   final Set<String> _usedCells = {};
 
-  // مؤقت اللعب
   late Stopwatch _stopwatch;
   Timer? _timer;
   int _elapsedSeconds = 0;
+
+  // إضافة متغيرات لتتبع أبعاد الشبكة الحقيقية
+  late int _gridRows;
+  late int _gridCols;
 
   @override
   void initState() {
@@ -55,40 +61,38 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     levelData = widget.level;
     wordFound = List.generate(levelData.words.length, (_) => false);
 
+    // حساب أبعاد الشبكة الحقيقية
+    _gridRows = levelData.gridLetters.length;
+    _gridCols = levelData.gridLetters.isEmpty 
+        ? 0 
+        : levelData.gridLetters.map((row) => row.length).reduce(max);
+
     // إيجاد مواقع كل كلمة في الشبكة
     for (var word in levelData.words) {
-      final positions = _findWordInGrid(word);
+      final positions = _findWordInGridDynamic(word);
       if (positions.isNotEmpty) {
         _wordPositionsMap[word] = positions;
       }
     }
   }
 
-  List<GridPosition> _findWordInGrid(String word) {
-    // البحث في جميع الاتجاهات الممكنة
-    final directions = [
-      [0, 1], // يمين
-      [1, 0], // أسفل
-      [1, 1], // قطري يمين-أسفل
-      [1, -1], // قطري يسار-أسفل
-      [0, -1], // يسار
-      [-1, 0], // أعلى
-      [-1, -1], // قطري يسار-أعلى
-      [-1, 1], // قطري يمين-أعلى
-    ];
+  List<GridPosition> _findWordInGridDynamic(String word) {
+    if (word.isEmpty) return [];
 
-    for (int row = 0; row < levelData.gridSize; row++) {
-      for (int col = 0; col < levelData.gridSize; col++) {
-        for (var dir in directions) {
-          final positions = _checkWordAtPosition(
+    for (int row = 0; row < _gridRows; row++) {
+      for (int col = 0; col < levelData.gridLetters[row].length; col++) {
+        if (levelData.getLetterAt(row, col) == word[0]) {
+          final visited = <String>{};
+          final result = _searchWordDFS(
             word,
+            0,
             row,
             col,
-            dir[0],
-            dir[1],
+            [],
+            visited,
           );
-          if (positions.isNotEmpty) {
-            return positions;
+          if (result.isNotEmpty) {
+            return result;
           }
         }
       }
@@ -96,34 +100,68 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     return [];
   }
 
-  List<GridPosition> _checkWordAtPosition(
+  List<GridPosition> _searchWordDFS(
     String word,
+    int charIndex,
     int row,
     int col,
-    int dRow,
-    int dCol,
+    List<GridPosition> currentPath,
+    Set<String> visited,
   ) {
-    List<GridPosition> positions = [];
-
-    for (int i = 0; i < word.length; i++) {
-      final newRow = row + (i * dRow);
-      final newCol = col + (i * dCol);
-
-      if (newRow < 0 ||
-          newRow >= levelData.gridSize ||
-          newCol < 0 ||
-          newCol >= levelData.gridSize) {
-        return [];
-      }
-
-      if (levelData.getLetterAt(newRow, newCol) != word[i]) {
-        return [];
-      }
-
-      positions.add(GridPosition(newRow, newCol));
+    // التحقق من الحدود بشكل صحيح
+    if (row < 0 || row >= _gridRows) {
+      return [];
+    }
+    
+    // التحقق من طول السطر الحالي
+    if (col < 0 || col >= levelData.gridLetters[row].length) {
+      return [];
     }
 
-    return positions;
+    final cellKey = '${row}_$col';
+    
+    if (visited.contains(cellKey)) {
+      return [];
+    }
+
+    if (levelData.getLetterAt(row, col) != word[charIndex]) {
+      return [];
+    }
+
+    final newPath = List<GridPosition>.from(currentPath)
+      ..add(GridPosition(row, col));
+    final newVisited = Set<String>.from(visited)..add(cellKey);
+
+    if (charIndex == word.length - 1) {
+      return newPath;
+    }
+
+    // الاتجاهات الثمانية
+    final directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],           [0, 1],
+      [1, -1],  [1, 0],  [1, 1],
+    ];
+
+    for (var dir in directions) {
+      final newRow = row + dir[0];
+      final newCol = col + dir[1];
+
+      final result = _searchWordDFS(
+        word,
+        charIndex + 1,
+        newRow,
+        newCol,
+        newPath,
+        newVisited,
+      );
+
+      if (result.isNotEmpty) {
+        return result;
+      }
+    }
+
+    return [];
   }
 
   void _loadHintsFromProgress() {
@@ -185,7 +223,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
     final wordIndex = levelData.words.indexOf(currentWord);
     if (wordIndex != -1 && !wordFound[wordIndex]) {
-      // التحقق من أن جميع الخلايا المحددة غير مستخدمة مسبقاً
       bool allCellsAvailable = true;
       for (var pos in selectedPositions) {
         final cellKey = '${pos.row}_${pos.col}';
@@ -205,7 +242,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
           foundWords.add(currentWord);
           _score += currentWord.length * 10;
 
-          // إضافة الخلايا المستخدمة إلى القائمة
           for (var pos in selectedPositions) {
             _usedCells.add('${pos.row}_${pos.col}');
           }
@@ -217,7 +253,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
           });
         }
       } else {
-        // خلية مستخدمة مسبقاً
         if (progressService.isVibrationEnabled) {
           HapticFeedback.heavyImpact();
         }
@@ -238,11 +273,10 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
   void _useHint() async {
     if (_hintsAvailable <= 0) {
-      _showNoHintsDialog();
+      showNoHintsDialog(context);
       return;
     }
 
-    // إيجاد أول كلمة لم يتم العثور عليها
     int hintIndex = -1;
     for (int i = 0; i < wordFound.length; i++) {
       if (!wordFound[i]) {
@@ -264,173 +298,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       HapticFeedback.mediumImpact();
     }
 
-    _showHintDialog(hintIndex);
-  }
-
-  void _showHintDialog(int wordIndex) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: Colors.white,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.lightbulb, color: Colors.amber, size: 32),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'تلميح',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5B6B8C),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.blue.shade200, width: 2),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    '❓ السؤال:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    levelData.questions[wordIndex],
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5B6B8C),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.amber.shade300, Colors.amber.shade100],
-                ),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    '✅ الإجابة:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.brown,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    levelData.words[wordIndex],
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF4DD4AC),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: const Text(
-              'حسناً',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-        actionsAlignment: MainAxisAlignment.center,
-      ),
-    );
-  }
-
-  void _showNoHintsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: Colors.white,
-        title: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.block, color: Colors.red.shade400, size: 40),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'لا توجد تلميحات',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Text(
-          'لقد استنفذت جميع التلميحات المتاحة!\nأكمل المزيد من المستويات للحصول على المزيد.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red.shade400,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: const Text(
-              'حسناً',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-        actionsAlignment: MainAxisAlignment.center,
-      ),
-    );
+    if (mounted) showHintDialog(context, hintIndex, levelData);
   }
 
   Future<void> _completeLevel() async {
@@ -449,180 +317,22 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       HapticFeedback.heavyImpact();
     }
 
-    _showSuccessDialog();
-  }
-
-  void _showSuccessDialog() {
-    final levelProgress = progressService.getLevelProgress(
-      levelData.levelNumber,
-    );
-    final stars = levelProgress?.stars ?? 1;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [const Color(0xFF4DD4AC), const Color(0xFF2E7D6A)],
-            ),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // أيقونة الكأس مع رسوم متحركة
-              TweenAnimationBuilder(
-                tween: Tween<double>(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.elasticOut,
-                builder: (context, double value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.emoji_events,
-                        size: 80,
-                        color: Colors.amber,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                "🎉 مبروك!",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "لقد أكملت المستوى ${levelData.levelNumber}",
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              const SizedBox(height: 20),
-              // النجوم
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) {
-                  return TweenAnimationBuilder(
-                    tween: Tween<double>(begin: 0, end: 1),
-                    duration: Duration(milliseconds: 400 + (index * 200)),
-                    curve: Curves.elasticOut,
-                    builder: (context, double value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(
-                            Icons.star,
-                            size: 50,
-                            color: index < stars
-                                ? Colors.amber
-                                : Colors.white38,
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
-              // الإحصائيات
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    _buildStatRow('النقاط', '$_score', Icons.diamond),
-                    const SizedBox(height: 12),
-                    _buildStatRow('الوقت', '$_elapsedSecondsث', Icons.timer),
-                    const SizedBox(height: 12),
-                    _buildStatRow(
-                      'الكلمات',
-                      '${foundWords.length}/${levelData.words.length}',
-                      Icons.check_circle,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              // زر المتابعة
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF2E7D6A),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 5,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context, {'completed': true, 'score': _score});
-                },
-                child: const Text(
-                  "المتابعة",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatRow(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white, size: 24),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
+    if (mounted) {
+      showSuccessDialog(
+        context,
+        levelData,
+        _score,
+        _elapsedSeconds,
+        foundWords.length,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        final shouldPop = await _showExitDialog();
+        final shouldPop = await showExitDialog(context);
         return shouldPop ?? false;
       },
       child: Scaffold(
@@ -647,7 +357,14 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                 const Spacer(),
                 _buildGrid(),
                 const Spacer(),
-                _buildBottomActions(),
+                BuildActionButton(
+                  icon: Icons.lightbulb,
+                  gradient: LinearGradient(
+                    colors: [Colors.amber.shade400, Colors.orange.shade300],
+                  ),
+                  count: '$_hintsAvailable',
+                  onTap: _useHint,
+                ),
                 const SizedBox(height: 20),
               ],
             ),
@@ -663,7 +380,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // النقاط
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -694,8 +410,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ],
             ),
           ),
-
-          // المستوى والوقت
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
@@ -714,11 +428,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ),
             ),
           ),
-
-          // زر الرجوع
           GestureDetector(
             onTap: () async {
-              final shouldPop = await _showExitDialog();
+              final shouldPop = await showExitDialog(context);
               if (shouldPop == true && mounted) {
                 Navigator.pop(context);
               }
@@ -789,7 +501,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                   ],
                 ),
               ),
-
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -899,12 +610,13 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     );
   }
 
-  /// Build the game grid
   Widget _buildGrid() {
+    final double horizontal = levelData.horizontal;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+      padding: EdgeInsets.symmetric(horizontal: horizontal),
       child: AspectRatio(
-        aspectRatio: 1,
+        // نسبة العرض إلى الارتفاع بناءً على أبعاد الشبكة الفعلية
+        aspectRatio: _gridCols / _gridRows,
         child: AnimatedBuilder(
           animation: _shakeAnimation,
           builder: (context, child) {
@@ -921,12 +633,17 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                     },
                     onPanEnd: (_) => _onRelease(),
                     child: Column(
-                      children: List.generate(levelData.gridSize, (row) {
+                      children: List.generate(_gridRows, (row) {
                         return Expanded(
                           child: Row(
-                            children: List.generate(levelData.gridSize, (col) {
-                              return Expanded(child: _buildGridCell(row, col));
-                            }),
+                            children: List.generate(
+                              levelData.gridLetters[row].length,
+                              (col) {
+                                return Expanded(
+                                  child: _buildGridCell(row, col),
+                                );
+                              },
+                            ),
                           ),
                         );
                       }),
@@ -942,26 +659,24 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   }
 
   void _handleTouch(Offset position, BoxConstraints constraints) {
-    final cellSize = constraints.maxWidth / levelData.gridSize;
+    // حساب حجم الخلية بناءً على الأبعاد الحقيقية
+    final cellWidth = constraints.maxWidth / _gridCols;
+    final cellHeight = constraints.maxHeight / _gridRows;
 
-    // حساب العمود بناءً على اتجاه النص
     final textDirection = Directionality.of(context);
     int col;
 
     if (textDirection == TextDirection.rtl) {
-      // في حالة RTL، نعكس حساب العمود
-      col = (levelData.gridSize - 1 - (position.dx / cellSize).floor());
+      col = _gridCols - 1 - (position.dx / cellWidth).floor();
     } else {
-      // في حالة LTR، الحساب الطبيعي
-      col = (position.dx / cellSize).floor();
+      col = (position.dx / cellWidth).floor();
     }
 
-    final row = (position.dy / cellSize).floor();
+    final row = (position.dy / cellHeight).floor();
 
-    if (row >= 0 &&
-        row < levelData.gridSize &&
-        col >= 0 &&
-        col < levelData.gridSize) {
+    // التحقق من الحدود الصحيحة
+    if (row >= 0 && row < _gridRows && 
+        col >= 0 && col < levelData.gridLetters[row].length) {
       _onCellTouch(row, col);
     }
   }
@@ -970,7 +685,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     final position = GridPosition(row, col);
     final cellKey = '${row}_$col';
 
-    // منع اختيار خلية مستخدمة مسبقاً
     if (_usedCells.contains(cellKey)) {
       return;
     }
@@ -986,7 +700,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       return;
     }
 
-    // التحقق إذا كانت الخلية محددة مسبقاً
     if (selectedPositions.any((p) => p.row == row && p.col == col)) {
       return;
     }
@@ -995,11 +708,9 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     final rowDiff = (row - lastPosition.row).abs();
     final colDiff = (col - lastPosition.col).abs();
 
-    // السماح فقط بالحركة الأفقية أو العمودية (منع القطرية)
-    // الحركة الصحيحة: خطوة واحدة أفقياً أو عمودياً فقط
     bool isValidMove =
-        (rowDiff == 1 && colDiff == 0) || // حركة عمودية
-        (rowDiff == 0 && colDiff == 1); // حركة أفقية
+        (rowDiff == 1 && colDiff == 0) ||
+        (rowDiff == 0 && colDiff == 1);
 
     if (isValidMove) {
       if (progressService.isVibrationEnabled) {
@@ -1010,7 +721,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
         currentWord += levelData.getLetterAt(row, col);
       });
     } else {
-      // حركة غير صالحة - قطرية أو بعيدة
       if (progressService.isVibrationEnabled) {
         HapticFeedback.heavyImpact();
       }
@@ -1025,7 +735,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     );
     final isUsed = _usedCells.contains(cellKey);
 
-    // التحقق إذا كانت الخلية جزء من كلمة تم إيجادها
     bool isPartOfFoundWord = false;
     for (var word in foundWords) {
       final positions = _wordPositionsMap[word];
@@ -1044,7 +753,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
         color: isSelected
             ? const Color(0xFF4DD4AC)
             : isUsed || isPartOfFoundWord
-            ? const Color(0xFF4CAF50).withOpacity(0.7)
+            ? const Color(0xFF4CAF50)
             : Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
@@ -1052,11 +761,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
         child: Text(
           levelData.getLetterAt(row, col),
           style: TextStyle(
-            fontSize: levelData.gridSize <= 4
-                ? 32
-                : levelData.gridSize <= 6
-                ? 24
-                : 20,
+            fontSize: levelData.horizontal - 4,
             fontWeight: FontWeight.bold,
             color: isSelected || isPartOfFoundWord || isUsed
                 ? Colors.white
@@ -1065,162 +770,6 @@ class _GameLevelScreenState extends State<GameLevelScreen>
             decorationThickness: 2,
           ),
         ),
-      ),
-    );
-  }
-
-  // build bottom actions
-  Widget _buildBottomActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildActionButton(
-            icon: Icons.lightbulb,
-            gradient: LinearGradient(
-              colors: [Colors.amber.shade400, Colors.orange.shade300],
-            ),
-            count: '$_hintsAvailable',
-            onTap: _useHint,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required Gradient gradient,
-    required String count,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 90,
-        height: 90,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.orange.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 40),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                child: Text(
-                  count,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<bool?> _showExitDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: Colors.white,
-        title: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange.shade600,
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'الخروج من المستوى؟',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Text(
-          'سيتم فقدان تقدمك الحالي في هذا المستوى.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.grey.shade200,
-                    foregroundColor: Colors.grey.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  child: const Text(
-                    'إلغاء',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.red.shade400,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  child: const Text(
-                    'الخروج',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       ),
     );
   }
