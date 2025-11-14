@@ -74,14 +74,14 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade300,
-              Colors.purple.shade200,
-              Colors.pink.shade200,
-            ],
-          ),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF4DD4AC).withOpacity(0.3),
+                const Color(0xFF5B9FE3).withOpacity(0.3),
+                const Color(0xFFE8B4F0).withOpacity(0.2),
+              ],
+            ),
         ),
         child: SafeArea(
           child: Column(
