@@ -17,11 +17,7 @@ class GameLevelScreen extends StatefulWidget {
 class _GameLevelScreenState extends State<GameLevelScreen>
     with TickerProviderStateMixin {
   late LevelData levelData;
-  late List<String> questions;
-  late List<String> words;
-  late List<String> gridLetters;
   late List<bool> wordFound;
-  late List<List<String>> grid;
 
   List<GridPosition> selectedPositions = [];
   String currentWord = '';
@@ -57,26 +53,10 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
   void _initializeLevel() {
     levelData = widget.level;
-
-    questions = levelData.questions;
-    words = levelData.words;
-    gridLetters = levelData.gridLetters;
-
-    wordFound = List.generate(words.length, (_) => false);
-    _generateGridFromLetters();
-  }
-
-  void _generateGridFromLetters() {
-    // إنشاء الشبكة من الأحرف المعطاة
-    grid = List.generate(levelData.gridSize, (i) {
-      return List.generate(levelData.gridSize, (j) {
-        final index = i * levelData.gridSize + j;
-        return index < gridLetters.length ? gridLetters[index] : '';
-      });
-    });
+    wordFound = List.generate(levelData.words.length, (_) => false);
 
     // إيجاد مواقع كل كلمة في الشبكة
-    for (var word in words) {
+    for (var word in levelData.words) {
       final positions = _findWordInGrid(word);
       if (positions.isNotEmpty) {
         _wordPositionsMap[word] = positions;
@@ -136,7 +116,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
         return [];
       }
 
-      if (grid[newRow][newCol] != word[i]) {
+      if (levelData.getLetterAt(newRow, newCol) != word[i]) {
         return [];
       }
 
@@ -203,7 +183,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       return;
     }
 
-    final wordIndex = words.indexOf(currentWord);
+    final wordIndex = levelData.words.indexOf(currentWord);
     if (wordIndex != -1 && !wordFound[wordIndex]) {
       // التحقق من أن جميع الخلايا المحددة غير مستخدمة مسبقاً
       bool allCellsAvailable = true;
@@ -231,7 +211,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
           }
         });
 
-        if (foundWords.length == words.length) {
+        if (foundWords.length == levelData.words.length) {
           Future.delayed(const Duration(milliseconds: 1000), () {
             _completeLevel();
           });
@@ -337,7 +317,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    questions[wordIndex],
+                    levelData.questions[wordIndex],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,
@@ -369,7 +349,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    words[wordIndex],
+                    levelData.words[wordIndex],
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -458,7 +438,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
     _stopwatch.stop();
 
     await progressService.completeLevel(
-      levelNumber: widget.level.levelNumber,
+      levelNumber: levelData.levelNumber,
       score: _score,
       foundWords: foundWords.toList(),
       timeSpent: _elapsedSeconds,
@@ -474,7 +454,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
 
   void _showSuccessDialog() {
     final levelProgress = progressService.getLevelProgress(
-      widget.level.levelNumber,
+      levelData.levelNumber,
     );
     final stars = levelProgress?.stars ?? 1;
 
@@ -531,7 +511,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                "لقد أكملت المستوى ${widget.level}",
+                "لقد أكملت المستوى ${levelData.levelNumber}",
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
@@ -578,7 +558,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                     const SizedBox(height: 12),
                     _buildStatRow(
                       'الكلمات',
-                      '${foundWords.length}/${words.length}',
+                      '${foundWords.length}/${levelData.words.length}',
                       Icons.check_circle,
                     ),
                   ],
@@ -726,7 +706,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
               ],
             ),
             child: Text(
-              'المستوى ${widget.level.levelNumber}',
+              'المستوى ${levelData.levelNumber}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -830,7 +810,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${foundWords.length}/${words.length}',
+                      '${foundWords.length}/${levelData.words.length}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -844,114 +824,73 @@ class _GameLevelScreenState extends State<GameLevelScreen>
           ),
         ),
         SizedBox(
-          height: 120,
+          height: 80,
           child: PageView.builder(
             controller: PageController(viewportFraction: 0.8),
-            itemCount: questions.length,
+            itemCount: levelData.questions.length,
             itemBuilder: (context, index) {
               final isFound = wordFound[index];
 
-              return Container(
-                margin: const EdgeInsets.only(right: 12, left: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  gradient: isFound
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFF4CAF50),
-                            const Color(0xFF66BB6A),
-                          ],
-                        )
-                      : const LinearGradient(
-                          colors: [Colors.white, Colors.white],
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    height: 80.0,
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    margin: const EdgeInsets.only(
+                      right: 12,
+                      left: 12,
+                      bottom: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFFFFFF),
+                      borderRadius: BorderRadius.circular(20.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isFound
-                        ? const Color(0xFF4CAF50)
-                        : Colors.grey.shade300,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    if (isFound)
-                      BoxShadow(
-                        color: const Color(0xFF4CAF50).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: isFound
-                                ? Colors.white
-                                : Colors.grey.shade300,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: isFound
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Color(0xFF4CAF50),
-                                    size: 16,
-                                  )
-                                : Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        const Spacer(),
-                        if (isFound)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              words[index],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      questions[index],
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isFound ? Colors.white : const Color(0xFF5B6B8C),
-                        height: 1.2,
+                    child: Center(
+                      child: Text(
+                        levelData.questions[index],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF060707),
+                          height: 1.2,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  if (isFound)
+                    Positioned(
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: Text(
+                          levelData.words[index],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),
@@ -963,7 +902,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
   /// Build the game grid
   Widget _buildGrid() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: AspectRatio(
         aspectRatio: 1,
         child: AnimatedBuilder(
@@ -1042,7 +981,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       }
       setState(() {
         selectedPositions.add(position);
-        currentWord = grid[row][col];
+        currentWord = levelData.getLetterAt(row, col);
       });
       return;
     }
@@ -1068,7 +1007,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       }
       setState(() {
         selectedPositions.add(position);
-        currentWord += grid[row][col];
+        currentWord += levelData.getLetterAt(row, col);
       });
     } else {
       // حركة غير صالحة - قطرية أو بعيدة
@@ -1111,7 +1050,7 @@ class _GameLevelScreenState extends State<GameLevelScreen>
       ),
       child: Center(
         child: Text(
-          grid[row][col],
+          levelData.getLetterAt(row, col),
           style: TextStyle(
             fontSize: levelData.gridSize <= 4
                 ? 32

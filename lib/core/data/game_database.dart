@@ -7,34 +7,46 @@ class GameDatabase {
       // ═══════════════════════════════════════════════════════════
       1: LevelData(
         levelNumber: 1,
-        gridSize: 3,
         questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
         words: ['أنف', 'موز', 'قطة'],
-        gridLetters: ['أ', 'ن', 'ف', 'م', 'و', 'ز', 'ق', 'ط', 'ة'],
+        gridLetters: [
+          ['أ', 'ن', 'ف'],
+          ['م', 'و', 'ز'],
+          ['ق', 'ط', 'ة'],
+        ],
       ),
 
       2: LevelData(
         levelNumber: 2,
-        gridSize: 3,
         questions: ['وقت الظهيرة', 'طائر يصيح فجراً', 'مصدر الضوء ليلاً'],
         words: ['ظهر', 'ديك', 'قمر'],
-        gridLetters: ['ظ', 'ه', 'ر', 'د', 'ي', 'ك', 'ق', 'م', 'ر'],
+        gridLetters: [
+          ['ظ', 'ه', 'ر'],
+          ['د', 'ي', 'ك'],
+          ['ق', 'م', 'ر'],
+        ],
       ),
 
       3: LevelData(
         levelNumber: 3,
-        gridSize: 3,
         questions: ['عكس ليل', 'رقم بعد ٢'],
-        words: ['نهار', 'ثلاثة'], // 5 + 4 = 9 أحرف
-        gridLetters: ['ن', 'ه', 'ا', 'ل', 'ث', 'ر', 'ا', 'ث', 'ة'],
+        words: ['نهار', 'ثلاثة'],
+        gridLetters: [
+          ['ن', 'ه', 'ا'],
+          ['ر', 'ث', 'ل'],
+          ['ا', 'ث', 'ة'],
+        ],
       ),
 
       4: LevelData(
         levelNumber: 4,
-        gridSize: 3,
         questions: ['عاصمة مصر', 'كوكب أحمر'],
         words: ['قاهرة', 'مريخ'],
-        gridLetters: ['ق', 'ا', 'ه', 'م', 'ة', 'ر', 'ر', 'ي', 'خ'],
+        gridLetters: [
+          ['ق', 'ا', 'ه'],
+          ['ر', 'ة', 'م'],
+          ['ر', 'ي', 'خ'],
+        ],
       ),
 
       // ═══════════════════════════════════════════════════════════
@@ -42,7 +54,6 @@ class GameDatabase {
       // ═══════════════════════════════════════════════════════════
       5: LevelData(
         levelNumber: 5,
-        gridSize: 4,
         questions: [
           'أكبر قارة في العالم',
           'عاصمة فرنسا',
@@ -51,28 +62,15 @@ class GameDatabase {
         ],
         words: ['آسيا', 'باريس', 'شتاء', 'ذهب'],
         gridLetters: [
-          'آ',
-          'س',
-          'ي',
-          'ا',
-          'ب',
-          'ا',
-          'ر',
-          'ي',
-          'س',
-          'ش',
-          'ت',
-          'ا',
-          'ء',
-          'ذ',
-          'ه',
-          'ب',
+          ['آ', 'س', 'ي', 'ا'],
+          ['ب', 'ا', 'ر', 'ي'],
+          ['س', 'ش', 'ت', 'ا'],
+          ['ء', 'ذ', 'ه', 'ب'],
         ],
       ),
 
       6: LevelData(
         levelNumber: 6,
-        gridSize: 4,
         questions: [
           'كتاب المسلمين المقدس',
           'نهر في مصر',
@@ -81,28 +79,15 @@ class GameDatabase {
         ],
         words: ['قرآن', 'نيل', 'رياض', 'زرافة'],
         gridLetters: [
-          'ق',
-          'ر',
-          'آ',
-          'ن',
-          'ن',
-          'ي',
-          'ل',
-          'ر',
-          'ي',
-          'ا',
-          'ض',
-          'ز',
-          'ر',
-          'ا',
-          'ف',
-          'ة',
+          ['ق', 'ر', 'آ', 'ن'],
+          ['ن', 'ي', 'ل', 'ر'],
+          ['ي', 'ا', 'ض', 'ز'],
+          ['ر', 'ا', 'ف', 'ة'],
         ],
       ),
 
       7: LevelData(
         levelNumber: 7,
-        gridSize: 4,
         questions: [
           'يوم الراحة الأسبوعية',
           'أكبر محيط في العالم',
@@ -111,72 +96,34 @@ class GameDatabase {
         ],
         words: ['جمعة', 'هادئ', 'مانجو', 'نعامة'],
         gridLetters: [
-          'ج',
-          'م',
-          'ع',
-          'ة',
-          'ه',
-          'ا',
-          'د',
-          'ئ',
-          'م',
-          'ا',
-          'ن',
-          'ج',
-          'و',
-          'ن',
-          'ع',
-          'ا',
+          ['ج', 'م', 'ع', 'ة'],
+          ['ه', 'ا', 'د', 'ئ'],
+          ['م', 'ا', 'ن', 'ج'],
+          ['و', 'ن', 'ع', 'ا'],
         ],
       ),
 
       8: LevelData(
         levelNumber: 8,
-        gridSize: 4,
         questions: ['جهاز للاتصال', 'مدينة الضباب', 'شهر الصيام', 'كوكب الأرض'],
         words: ['هاتف', 'لندن', 'رمضان', 'كوكب'],
         gridLetters: [
-          'ه',
-          'ا',
-          'ت',
-          'ف',
-          'ل',
-          'ن',
-          'د',
-          'ن',
-          'ر',
-          'م',
-          'ض',
-          'ا',
-          'ن',
-          'ك',
-          'و',
-          'ك',
+          ['ه', 'ا', 'ت', 'ف'],
+          ['ل', 'ن', 'د', 'ن'],
+          ['ر', 'م', 'ض', 'ا'],
+          ['ن', 'ك', 'و', 'ك'],
         ],
       ),
 
       9: LevelData(
         levelNumber: 9,
-        gridSize: 4,
         questions: ['ساعة الحائط', 'رياضة بالكرة', 'حاسة التذوق', 'بيت النحل'],
         words: ['منبه', 'تنس', 'لسان', 'خلية'],
         gridLetters: [
-          'م',
-          'ن',
-          'ب',
-          'ه',
-          'ت',
-          'ن',
-          'س',
-          'ل',
-          'س',
-          'ا',
-          'ن',
-          'خ',
-          'ل',
-          'ي',
-          'ة',
-          'م',
+          ['م', 'ن', 'ب', 'ه'],
+          ['ت', 'ن', 'س', 'ل'],
+          ['س', 'ا', 'ن', 'خ'],
+          ['ل', 'ي', 'ة', 'م'],
         ],
       ),
 
@@ -185,7 +132,6 @@ class GameDatabase {
       // ═══════════════════════════════════════════════════════════
       10: LevelData(
         levelNumber: 10,
-        gridSize: 5,
         questions: [
           'عاصمة إيطاليا',
           'جهاز للتبريد',
@@ -195,37 +141,16 @@ class GameDatabase {
         ],
         words: ['روما', 'ثلاجة', 'كاراتيه', 'نيل', 'زحل'],
         gridLetters: [
-          'ر',
-          'و',
-          'م',
-          'ا',
-          'ث',
-          'ل',
-          'ا',
-          'ج',
-          'ة',
-          'ك',
-          'ا',
-          'ر',
-          'ا',
-          'ت',
-          'ي',
-          'ه',
-          'ن',
-          'ي',
-          'ل',
-          'ز',
-          'ح',
-          'ل',
-          'م',
-          'ن',
-          'ق',
+          ['ر', 'و', 'م', 'ا', 'ث'],
+          ['ل', 'ا', 'ج', 'ة', 'ك'],
+          ['ا', 'ر', 'ا', 'ت', 'ي'],
+          ['ه', 'ن', 'ي', 'ل', 'ز'],
+          ['ح', 'ل', 'م', 'ن', 'ق'],
         ],
       ),
 
       11: LevelData(
         levelNumber: 11,
-        gridSize: 5,
         questions: [
           'جبل أعلى قمة',
           'مدينة الذهب',
@@ -235,37 +160,16 @@ class GameDatabase {
         ],
         words: ['إفرست', 'دبي', 'فهد', 'طوكيو', 'فضة'],
         gridLetters: [
-          'إ',
-          'ف',
-          'ر',
-          'س',
-          'ت',
-          'د',
-          'ب',
-          'ي',
-          'ف',
-          'ه',
-          'د',
-          'ط',
-          'و',
-          'ك',
-          'ي',
-          'و',
-          'ف',
-          'ض',
-          'ة',
-          'م',
-          'ن',
-          'ل',
-          'ك',
-          'ج',
-          'ر',
+          ['إ', 'ف', 'ر', 'س', 'ت'],
+          ['د', 'ب', 'ي', 'ف', 'ه'],
+          ['د', 'ط', 'و', 'ك', 'ي'],
+          ['و', 'ف', 'ض', 'ة', 'م'],
+          ['ن', 'ل', 'ك', 'ج', 'ر'],
         ],
       ),
 
       12: LevelData(
         levelNumber: 12,
-        gridSize: 5,
         questions: [
           'قارة الكنغر',
           'شهر الحج',
@@ -275,37 +179,16 @@ class GameDatabase {
         ],
         words: ['أستراليا', 'ذو الحجة', 'بوكس', 'زهرة', 'باريس'],
         gridLetters: [
-          'أ',
-          'س',
-          'ت',
-          'ر',
-          'ا',
-          'ل',
-          'ي',
-          'ا',
-          'ذ',
-          'و',
-          'ا',
-          'ل',
-          'ح',
-          'ج',
-          'ة',
-          'ب',
-          'و',
-          'ك',
-          'س',
-          'ز',
-          'ه',
-          'ر',
-          'ة',
-          'ب',
-          'ا',
+          ['أ', 'س', 'ت', 'ر', 'ا'],
+          ['ل', 'ي', 'ا', 'ذ', 'و'],
+          ['ا', 'ل', 'ح', 'ج', 'ة'],
+          ['ب', 'و', 'ك', 'س', 'ز'],
+          ['ه', 'ر', 'ة', 'ب', 'ا'],
         ],
       ),
 
       13: LevelData(
         levelNumber: 13,
-        gridSize: 5,
         questions: [
           'أصغر قارة',
           'عاصمة الهند',
@@ -315,37 +198,16 @@ class GameDatabase {
         ],
         words: ['أوقيانوسيا', 'دلهي', 'حوت', 'ديسمبر', 'أخضر'],
         gridLetters: [
-          'أ',
-          'و',
-          'ق',
-          'ي',
-          'ا',
-          'ن',
-          'و',
-          'س',
-          'ي',
-          'ا',
-          'د',
-          'ل',
-          'ه',
-          'ي',
-          'ح',
-          'و',
-          'ت',
-          'د',
-          'ي',
-          'س',
-          'م',
-          'ب',
-          'ر',
-          'أ',
-          'خ',
+          ['أ', 'و', 'ق', 'ي', 'ا'],
+          ['ن', 'و', 'س', 'ي', 'ا'],
+          ['د', 'ل', 'ه', 'ي', 'ح'],
+          ['و', 'ت', 'د', 'ي', 'س'],
+          ['م', 'ب', 'ر', 'أ', 'خ'],
         ],
       ),
 
       14: LevelData(
         levelNumber: 14,
-        gridSize: 5,
         questions: [
           'عاصمة ألمانيا',
           'طائر الليل',
@@ -355,31 +217,11 @@ class GameDatabase {
         ],
         words: ['برلين', 'بومة', 'أذن', 'زهرة', 'خريف'],
         gridLetters: [
-          'ب',
-          'ر',
-          'ل',
-          'ي',
-          'ن',
-          'ب',
-          'و',
-          'م',
-          'ة',
-          'أ',
-          'ذ',
-          'ن',
-          'ز',
-          'ه',
-          'ر',
-          'ة',
-          'خ',
-          'ر',
-          'ي',
-          'ف',
-          'ج',
-          'س',
-          'ع',
-          'ك',
-          'ل',
+          ['ب', 'ر', 'ل', 'ي', 'ن'],
+          ['ب', 'و', 'م', 'ة', 'أ'],
+          ['ذ', 'ن', 'ز', 'ه', 'ر'],
+          ['ة', 'خ', 'ر', 'ي', 'ف'],
+          ['ج', 'س', 'ع', 'ك', 'ل'],
         ],
       ),
     };
@@ -402,7 +244,8 @@ class GameDatabase {
 
   // الحصول على حجم الشبكة لمستوى معين
   static int getGridSizeForLevel(int levelNumber) {
-    return getAllLevels()[levelNumber]!.gridSize;
+    final level = getAllLevels()[levelNumber];
+    return level?.gridSize ?? 0;
   }
 
   // الحصول على نطاق المستويات لحجم شبكة معين
@@ -420,30 +263,33 @@ class GameDatabase {
   static Map<String, dynamic> getStatistics() {
     final allLevels = getAllLevels();
     final gridSizes = <int, int>{};
+    int minSize = 999;
+    int maxSize = 0;
 
     for (var level in allLevels.values) {
-      gridSizes[level.gridSize] = (gridSizes[level.gridSize] ?? 0) + 1;
+      final size = level.gridSize;
+      gridSizes[size] = (gridSizes[size] ?? 0) + 1;
+      if (size < minSize) minSize = size;
+      if (size > maxSize) maxSize = size;
     }
 
     return {
       'totalLevels': allLevels.length,
       'gridSizeDistribution': gridSizes,
-      'minGridSize': 3,
-      'maxGridSize': 9,
+      'minGridSize': minSize,
+      'maxGridSize': maxSize,
     };
   }
 }
 
 class LevelData {
   final int levelNumber;
-  final int gridSize;
   final List<String> questions; // الأسئلة بعدد الكلمات
   final List<String> words; // الكلمات (الإجابات)
-  final List<String> gridLetters; // الأحرف المستخدمة في الشبكة
+  final List<List<String>> gridLetters; // الأحرف المستخدمة في الشبكة (قوائم متداخلة)
 
   LevelData({
     required this.levelNumber,
-    required this.gridSize,
     required this.questions,
     required this.words,
     required this.gridLetters,
@@ -453,15 +299,21 @@ class LevelData {
       questions.length == words.length,
       'عدد الأسئلة يجب أن يساوي عدد الكلمات',
     );
+    
+    // التحقق من أن الشبكة مربعة
     assert(
-      gridLetters.length == gridSize * gridSize,
-      'عدد الأحرف يجب أن يساوي gridSize * gridSize',
+      gridLetters.isNotEmpty && gridLetters.every((row) => row.length == gridLetters.length),
+      'الشبكة يجب أن تكون مربعة (عدد الصفوف = عدد الأعمدة)',
     );
+    
     assert(
       words.length <= gridSize * gridSize,
-      'عدد الكلمات لا يمكن أن يتجاوز gridSize * gridSize',
+      'عدد الكلمات لا يمكن أن يتجاوز عدد الخلايا في الشبكة',
     );
   }
+
+  // حجم الشبكة (يُستنتج من عدد الصفوف)
+  int get gridSize => gridLetters.length;
 
   // عدد الكلمات الإجمالي
   int get totalWords => words.length;
@@ -470,7 +322,15 @@ class LevelData {
   int get totalQuestions => questions.length;
 
   // عدد الأحرف
-  int get totalLetters => gridLetters.length;
+  int get totalLetters => gridSize * gridSize;
+
+  // الحصول على حرف في موقع محدد
+  String getLetterAt(int row, int col) {
+    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+      return gridLetters[row][col];
+    }
+    return '';
+  }
 
   // الصعوبة بناءً على حجم الشبكة
   String get difficulty {
@@ -495,16 +355,19 @@ class LevelData {
 
   @override
   String toString() {
-    return 'LevelData(gridSize: $gridSize, totalWords: $totalWords, totalLetters: $totalLetters, difficulty: $difficulty)';
+    return 'LevelData(levelNumber: $levelNumber, gridSize: $gridSize, totalWords: $totalWords, totalLetters: $totalLetters, difficulty: $difficulty)';
   }
 
   factory LevelData.empty() {
     return LevelData(
       levelNumber: 0,
-      gridSize: 3,
       questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
       words: ['أنف', 'موز', 'قطة'],
-      gridLetters: ['أ', 'ن', 'ف', 'م', 'و', 'ز', 'ق', 'ط', 'ة'],
+      gridLetters: [
+        ['أ', 'ن', 'ف'],
+        ['م', 'و', 'ز'],
+        ['ق', 'ط', 'ة'],
+      ],
     );
   }
 }
