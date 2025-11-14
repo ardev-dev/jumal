@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../core/services/game_progress_service.dart';
-import '../core/data/game_level.dart';
+import '../core/data/game_database.dart';
 import 'game_level_screen.dart';
 import 'settings_screen.dart';
 
@@ -28,7 +28,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   @override
   void initState() {
     super.initState();
-    totalLevels = GameLevelsDatabase.getTotalLevels();
+    totalLevels = GameDatabase.getTotalLevels();
     _loadProgress();
     _setupAnimations();
   }
@@ -216,7 +216,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
 
   Widget _buildProgressCard() {
     final progress = currentLevel / totalLevels;
-    final gridSize = GameLevelsDatabase.getGridSizeForLevel(currentLevel);
+    final gridSize = GameDatabase.getGridSizeForLevel(currentLevel);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -344,7 +344,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     bool isLocked = levelNumber > currentLevel;
     bool isCurrent = levelNumber == currentLevel;
 
-    final levelData = GameLevelsDatabase.getLevel(levelNumber);
+    final levelData = GameDatabase.getLevel(levelNumber);
     final gridSize = levelData?.gridSize ?? 3;
 
     // الحصول على عدد النجوم إذا كان المستوى مكتملاً
@@ -582,7 +582,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NatureWordGameScreen(levelNumber: levelNumber),
+        builder: (context) => GameLevelScreen(levelNumber: levelNumber),
       ),
     );
 

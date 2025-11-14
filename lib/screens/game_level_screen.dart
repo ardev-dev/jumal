@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/services/game_progress_service.dart';
-import '../core/data/game_level.dart';
+import '../core/data/game_database.dart';
 
-class NatureWordGameScreen extends StatefulWidget {
+class GameLevelScreen extends StatefulWidget {
   final int levelNumber;
-  const NatureWordGameScreen({super.key, required this.levelNumber});
+  const GameLevelScreen({super.key, required this.levelNumber});
 
   @override
-  State<NatureWordGameScreen> createState() => _NatureWordGameScreenState();
+  State<GameLevelScreen> createState() => _GameLevelScreenState();
 }
 
-class _NatureWordGameScreenState extends State<NatureWordGameScreen>
+class _GameLevelScreenState extends State<GameLevelScreen>
     with TickerProviderStateMixin {
   late List<String> questions;
   late List<String> words;
-  late List<String> letters;
+  late List<String> gridLetters;
   late List<bool> wordFound;
   late List<List<String>> grid;
   late int gridSize;
@@ -30,7 +30,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   late AnimationController _successController;
   late AnimationController _celebrationController;
   late Animation<double> _shakeAnimation;
-  late Animation<double> _scaleAnimation;
 
   int _score = 0;
   int _hintsAvailable = 0;
@@ -47,9 +46,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   Timer? _timer;
   int _elapsedSeconds = 0;
 
-  // للرسوم المتحركة
-  int? _currentQuestionIndex;
-
   @override
   void initState() {
     super.initState();
@@ -60,18 +56,18 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   }
 
   void _initializeLevel() {
-    final levelData = GameLevelsDatabase.getLevel(widget.levelNumber);
+    final levelData = GameDatabase.getLevel(widget.levelNumber);
 
     if (levelData == null) {
       gridSize = 4;
       questions = ['سؤال 1', 'سؤال 2', 'سؤال 3', 'سؤال 4'];
       words = ['كلمة', 'كلم', 'لمة', 'كلة'];
-      letters = List.generate(16, (_) => 'ك');
+      gridLetters = List.generate(16, (_) => 'ك');
     } else {
       gridSize = levelData.gridSize;
       questions = levelData.questions;
       words = levelData.words;
-      letters = levelData.letters;
+      gridLetters = levelData.gridLetters;
     }
 
     wordFound = List.generate(words.length, (_) => false);
@@ -83,7 +79,7 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
     grid = List.generate(gridSize, (i) {
       return List.generate(gridSize, (j) {
         final index = i * gridSize + j;
-        return index < letters.length ? letters[index] : '';
+        return index < gridLetters.length ? gridLetters[index] : '';
       });
     });
 
@@ -195,11 +191,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).chain(CurveTween(curve: Curves.elasticOut)).animate(_successController);
   }
 
   @override
@@ -210,45 +201,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
     _successController.dispose();
     _celebrationController.dispose();
     super.dispose();
-  }
-
-  void _onCellTouch(int row, int col) {
-    final position = GridPosition(row, col);
-    final cellKey = '${row}_$col';
-
-    // منع اختيار خلية مستخدمة مسبقاً
-    if (_usedCells.contains(cellKey)) {
-      return;
-    }
-
-    if (selectedPositions.isEmpty) {
-      if (progressService.isVibrationEnabled) {
-        HapticFeedback.lightImpact();
-      }
-      setState(() {
-        selectedPositions.add(position);
-        currentWord = grid[row][col];
-      });
-      return;
-    }
-
-    if (selectedPositions.any((p) => p.row == row && p.col == col)) {
-      return;
-    }
-
-    final lastPosition = selectedPositions.last;
-    final rowDiff = (row - lastPosition.row).abs();
-    final colDiff = (col - lastPosition.col).abs();
-
-    if (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff) > 0) {
-      if (progressService.isVibrationEnabled) {
-        HapticFeedback.lightImpact();
-      }
-      setState(() {
-        selectedPositions.add(position);
-        currentWord += grid[row][col];
-      });
-    }
   }
 
   void _onRelease() {
@@ -280,18 +232,11 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
           wordFound[wordIndex] = true;
           foundWords.add(currentWord);
           _score += currentWord.length * 10;
-          _currentQuestionIndex = wordIndex;
 
           // إضافة الخلايا المستخدمة إلى القائمة
           for (var pos in selectedPositions) {
             _usedCells.add('${pos.row}_${pos.col}');
           }
-        });
-
-        _successController.forward(from: 0).then((_) {
-          setState(() {
-            _currentQuestionIndex = null;
-          });
         });
 
         if (foundWords.length == words.length) {
@@ -723,7 +668,7 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
             child: Column(
               children: [
                 _buildHeader(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8.0),
                 _buildQuestionsCard(),
                 const Spacer(),
                 _buildGrid(),
@@ -739,9 +684,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   }
 
   Widget _buildHeader() {
-    final minutes = _elapsedSeconds ~/ 60;
-    final seconds = _elapsedSeconds % 60;
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -780,61 +722,23 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
           ),
 
           // المستوى والوقت
-          Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Text(
-                  'المستوى ${widget.levelNumber}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5B6B8C),
-                  ),
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+              ],
+            ),
+            child: Text(
+              'المستوى ${widget.levelNumber}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5B6B8C),
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.orange.shade300, Colors.orange.shade100],
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.timer, size: 18, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
 
           // زر الرجوع
@@ -869,34 +773,49 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   }
 
   Widget _buildQuestionsCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final minutes = _elapsedSeconds ~/ 60;
+    final seconds = _elapsedSeconds % 60;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 16.0,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 16.0,
             children: [
-              const Text(
-                'خذف أو شجار بين طرفين',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF5B6B8C),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade300, Colors.orange.shade100],
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.timer, size: 18, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -929,143 +848,128 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: questions.length,
-              itemBuilder: (context, index) {
-                final isFound = wordFound[index];
-                final isAnimating = _currentQuestionIndex == index;
+        ),
+        SizedBox(
+          height: 120,
+          child: PageView.builder(
+            controller: PageController(viewportFraction: 0.8),
+            itemCount: questions.length,
+            itemBuilder: (context, index) {
+              final isFound = wordFound[index];
 
-                return AnimatedBuilder(
-                  animation: _scaleAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: isAnimating ? _scaleAnimation.value : 1.0,
-                      child: Container(
-                        width: 180,
-                        margin: const EdgeInsets.only(left: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: isFound
-                              ? LinearGradient(
-                                  colors: [
-                                    const Color(0xFF4CAF50),
-                                    const Color(0xFF66BB6A),
-                                  ],
-                                )
-                              : LinearGradient(
-                                  colors: [
-                                    Colors.grey.shade100,
-                                    Colors.grey.shade200,
-                                  ],
-                                ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isFound
-                                ? const Color(0xFF4CAF50)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            if (isFound)
-                              BoxShadow(
-                                color: const Color(0xFF4CAF50).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
+              return Container(
+                margin: const EdgeInsets.only(right: 12, left: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  gradient: isFound
+                      ? LinearGradient(
+                          colors: [
+                            const Color(0xFF4CAF50),
+                            const Color(0xFF66BB6A),
                           ],
+                        )
+                      : const LinearGradient(
+                          colors: [Colors.white, Colors.white],
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 26,
-                                  height: 26,
-                                  decoration: BoxDecoration(
-                                    color: isFound
-                                        ? Colors.white
-                                        : Colors.grey.shade300,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: isFound
-                                        ? const Icon(
-                                            Icons.check,
-                                            color: Color(0xFF4CAF50),
-                                            size: 16,
-                                          )
-                                        : Text(
-                                            '${index + 1}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                const Spacer(),
-                                if (isFound)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      words[index],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              questions[index],
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isFound
-                                    ? Colors.white
-                                    : const Color(0xFF5B6B8C),
-                                height: 1.2,
-                              ),
-                            ),
-                          ],
-                        ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isFound
+                        ? const Color(0xFF4CAF50)
+                        : Colors.grey.shade300,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    if (isFound)
+                      BoxShadow(
+                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: isFound
+                                ? Colors.white
+                                : Colors.grey.shade300,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: isFound
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Color(0xFF4CAF50),
+                                    size: 16,
+                                  )
+                                : Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isFound)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              words[index],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      questions[index],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isFound ? Colors.white : const Color(0xFF5B6B8C),
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
+  /// Build the game grid
   Widget _buildGrid() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: AspectRatio(
         aspectRatio: 1,
         child: AnimatedBuilder(
@@ -1073,45 +977,29 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
           builder: (context, child) {
             return Transform.translate(
               offset: Offset(sin(_shakeAnimation.value) * 3, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return GestureDetector(
+                    onPanStart: (details) {
+                      _handleTouch(details.localPosition, constraints);
+                    },
+                    onPanUpdate: (details) {
+                      _handleTouch(details.localPosition, constraints);
+                    },
+                    onPanEnd: (_) => _onRelease(),
+                    child: Column(
+                      children: List.generate(gridSize, (row) {
+                        return Expanded(
+                          child: Row(
+                            children: List.generate(gridSize, (col) {
+                              return Expanded(child: _buildGridCell(row, col));
+                            }),
+                          ),
+                        );
+                      }),
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(8),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return GestureDetector(
-                      onPanStart: (details) {
-                        _handleTouch(details.localPosition, constraints);
-                      },
-                      onPanUpdate: (details) {
-                        _handleTouch(details.localPosition, constraints);
-                      },
-                      onPanEnd: (_) => _onRelease(),
-                      child: Column(
-                        children: List.generate(gridSize, (row) {
-                          return Expanded(
-                            child: Row(
-                              children: List.generate(gridSize, (col) {
-                                return Expanded(
-                                  child: _buildGridCell(row, col),
-                                );
-                              }),
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  },
-                ),
+                  );
+                },
               ),
             );
           },
@@ -1123,11 +1011,74 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
   void _handleTouch(Offset position, BoxConstraints constraints) {
     final cellSize = constraints.maxWidth / gridSize;
 
-    final col = (position.dx / cellSize).floor();
+    // حساب العمود بناءً على اتجاه النص
+    final textDirection = Directionality.of(context);
+    int col;
+
+    if (textDirection == TextDirection.rtl) {
+      // في حالة RTL، نعكس حساب العمود
+      col = (gridSize - 1 - (position.dx / cellSize).floor());
+    } else {
+      // في حالة LTR، الحساب الطبيعي
+      col = (position.dx / cellSize).floor();
+    }
+
     final row = (position.dy / cellSize).floor();
 
     if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
       _onCellTouch(row, col);
+    }
+  }
+
+  void _onCellTouch(int row, int col) {
+    final position = GridPosition(row, col);
+    final cellKey = '${row}_$col';
+
+    // منع اختيار خلية مستخدمة مسبقاً
+    if (_usedCells.contains(cellKey)) {
+      return;
+    }
+
+    if (selectedPositions.isEmpty) {
+      if (progressService.isVibrationEnabled) {
+        HapticFeedback.lightImpact();
+      }
+      setState(() {
+        selectedPositions.add(position);
+        currentWord = grid[row][col];
+      });
+      return;
+    }
+
+    // التحقق إذا كانت الخلية محددة مسبقاً
+    if (selectedPositions.any((p) => p.row == row && p.col == col)) {
+      return;
+    }
+
+    final lastPosition = selectedPositions.last;
+    final rowDiff = (row - lastPosition.row).abs();
+    final colDiff = (col - lastPosition.col).abs();
+
+    // السماح فقط بالحركة الأفقية أو العمودية (منع القطرية)
+    // الحركة الصحيحة: خطوة واحدة أفقياً أو عمودياً فقط
+    bool isValidMove =
+        (rowDiff == 1 && colDiff == 0) || // حركة عمودية
+        (rowDiff == 0 && colDiff == 1); // حركة أفقية
+
+    if (isValidMove) {
+      if (progressService.isVibrationEnabled) {
+        HapticFeedback.lightImpact();
+      }
+      setState(() {
+        selectedPositions.add(position);
+        currentWord += grid[row][col];
+      });
+    } else {
+      // حركة غير صالحة - قطرية أو بعيدة
+      if (progressService.isVibrationEnabled) {
+        HapticFeedback.heavyImpact();
+      }
+      _shakeController.forward(from: 0);
     }
   }
 
@@ -1165,9 +1116,7 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
                   const Color(0xFF66BB6A).withOpacity(0.7),
                 ],
               )
-            : LinearGradient(
-                colors: [Colors.grey.shade100, Colors.grey.shade200],
-              ),
+            : LinearGradient(colors: [Colors.white, Colors.white]),
         borderRadius: BorderRadius.circular(12),
         border: isUsed
             ? Border.all(color: const Color(0xFF4CAF50), width: 2)
@@ -1200,7 +1149,6 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
                 color: isSelected || isPartOfFoundWord || isUsed
                     ? Colors.white
                     : const Color(0xFF5B6B8C),
-                decoration: isUsed ? TextDecoration.lineThrough : null,
                 decorationColor: Colors.white,
                 decorationThickness: 2,
               ),
@@ -1221,6 +1169,7 @@ class _NatureWordGameScreenState extends State<NatureWordGameScreen>
     );
   }
 
+  // build bottom actions
   Widget _buildBottomActions() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),

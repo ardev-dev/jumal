@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/services/game_progress_service.dart';
 import 'screens/level_map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // تهيئة Hive
   await initHive();
-  
+
   // قفل الشاشة في الوضع العمودي
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const MyApp());
 }
 
@@ -32,6 +33,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Cairo', // إذا أضفت خط عربي
       ),
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const SplashScreen(),
     );
   }
@@ -53,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -74,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    
+
     // الانتقال للشاشة الرئيسية بعد 3 ثوانٍ
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -84,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
         );
       }
     });
-    
+
     // التحقق من المكافأة اليومية
     _checkDailyReward();
   }
@@ -116,11 +124,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.card_giftcard,
-                size: 80,
-                color: Colors.white,
-              ),
+              const Icon(Icons.card_giftcard, size: 80, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
                 '🎁 مكافأة يومية!',
@@ -133,10 +137,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 12),
               const Text(
                 'لقد حصلت على:',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
               const SizedBox(height: 16),
               Container(
@@ -150,7 +151,11 @@ class _SplashScreenState extends State<SplashScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.lightbulb, color: Colors.orange, size: 32),
+                        const Icon(
+                          Icons.lightbulb,
+                          color: Colors.orange,
+                          size: 32,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '+2 تلميحات',
@@ -197,10 +202,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 child: const Text(
                   'رائع!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -280,17 +282,16 @@ class _SplashScreenState extends State<SplashScreen>
                   const SizedBox(height: 16),
                   const Text(
                     'اكتشف الكلمات المخفية',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.white70),
                   ),
                   const SizedBox(height: 60),
                   SizedBox(
                     width: 60,
                     height: 60,
                     child: CircularProgressIndicator(
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                       backgroundColor: Colors.white.withOpacity(0.3),
                       strokeWidth: 6,
                     ),
