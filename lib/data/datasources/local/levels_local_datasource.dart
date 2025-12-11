@@ -1,6 +1,51 @@
-class GameDatabase {
-  // قاعدة البيانات الكاملة للمستويات
-  static Map<int, LevelDataModel> getAllLevels() {
+import '../../models/level_data_model.dart';
+
+/// مصدر البيانات المحلي للمستويات
+abstract interface class LevelsLocalDataSource {
+  /// الحصول على جميع المستويات
+  Map<int, LevelDataModel> getAllLevels();
+
+  /// الحصول على مستوى محدد
+  LevelDataModel? getLevel(int levelNumber);
+
+  /// الحصول على إجمالي عدد المستويات
+  int getTotalLevels();
+
+  /// التحقق من وجود مستوى
+  bool levelExists(int levelNumber);
+}
+
+/// التنفيذ الافتراضي لمصدر البيانات المحلي
+class LevelsLocalDataSourceImpl implements LevelsLocalDataSource {
+  // Singleton pattern
+  static final LevelsLocalDataSourceImpl _instance = LevelsLocalDataSourceImpl._internal();
+  factory LevelsLocalDataSourceImpl() => _instance;
+  LevelsLocalDataSourceImpl._internal();
+
+  // Cache للمستويات
+  Map<int, LevelDataModel>? _levelsCache;
+
+  @override
+  Map<int, LevelDataModel> getAllLevels() {
+    return _levelsCache ??= _generateLevels();
+  }
+
+  @override
+  LevelDataModel? getLevel(int levelNumber) {
+    return getAllLevels()[levelNumber];
+  }
+
+  @override
+  int getTotalLevels() {
+    return getAllLevels().length;
+  }
+
+  @override
+  bool levelExists(int levelNumber) {
+    return getAllLevels().containsKey(levelNumber);
+  }
+
+  Map<int, LevelDataModel> _generateLevels() {
     return {
       1: LevelDataModel(
         levelNumber: 1,
@@ -17,7 +62,6 @@ class GameDatabase {
           ['ل', 'و', 'س'],
         ],
       ),
-
       2: LevelDataModel(
         levelNumber: 2,
         questions: ['وقت الظهيرة', 'طائر يصيح فجراً', 'مصدر الضوء ليلاً'],
@@ -28,7 +72,6 @@ class GameDatabase {
           ['ق', 'م', 'ر'],
         ],
       ),
-
       3: LevelDataModel(
         levelNumber: 3,
         questions: ['عكس ليل', 'رقم بعد ٢'],
@@ -39,7 +82,6 @@ class GameDatabase {
           ['ا', 'ث', 'ة'],
         ],
       ),
-
       4: LevelDataModel(
         levelNumber: 4,
         questions: ['عاصمة مصر', 'كوكب أحمر'],
@@ -50,7 +92,6 @@ class GameDatabase {
           ['ر', 'ي', 'خ'],
         ],
       ),
-
       5: LevelDataModel(
         levelNumber: 5,
         questions: [
@@ -67,7 +108,6 @@ class GameDatabase {
           ['ء', 'ذ', 'ه', 'ب'],
         ],
       ),
-
       6: LevelDataModel(
         levelNumber: 6,
         questions: [
@@ -84,7 +124,6 @@ class GameDatabase {
           ['ر', 'ا', 'ف', 'ة'],
         ],
       ),
-
       7: LevelDataModel(
         levelNumber: 7,
         questions: [
@@ -101,7 +140,6 @@ class GameDatabase {
           ['و', 'ن', 'ع', 'ا'],
         ],
       ),
-
       8: LevelDataModel(
         levelNumber: 8,
         questions: ['جهاز للاتصال', 'مدينة الضباب', 'شهر الصيام', 'كوكب الأرض'],
@@ -113,7 +151,6 @@ class GameDatabase {
           ['ن', 'ك', 'و', 'ك'],
         ],
       ),
-
       9: LevelDataModel(
         levelNumber: 9,
         questions: ['ساعة الحائط', 'رياضة بالكرة', 'حاسة التذوق', 'بيت النحل'],
@@ -143,7 +180,6 @@ class GameDatabase {
           ['ح', 'ل', 'م', 'ن', 'ق'],
         ],
       ),
-
       11: LevelDataModel(
         levelNumber: 11,
         questions: [
@@ -162,7 +198,6 @@ class GameDatabase {
           ['ن', 'ل', 'ك', 'ج', 'ر'],
         ],
       ),
-
       12: LevelDataModel(
         levelNumber: 12,
         questions: [
@@ -181,7 +216,6 @@ class GameDatabase {
           ['ه', 'ر', 'ة', 'ب', 'ا'],
         ],
       ),
-
       13: LevelDataModel(
         levelNumber: 13,
         questions: [
@@ -200,7 +234,6 @@ class GameDatabase {
           ['م', 'ب', 'ر', 'أ', 'خ'],
         ],
       ),
-
       14: LevelDataModel(
         levelNumber: 14,
         questions: [
@@ -220,115 +253,5 @@ class GameDatabase {
         ],
       ),
     };
-  }
-
-  // الحصول على بيانات مستوى محدد
-  static LevelDataModel? getLevel(int levelNumber) {
-    return getAllLevels()[levelNumber];
-  }
-
-  // الحصول على إجمالي عدد المستويات
-  static int getTotalLevels() {
-    return getAllLevels().length;
-  }
-
-  // التحقق من وجود مستوى
-  static bool levelExists(int levelNumber) {
-    return getAllLevels().containsKey(levelNumber);
-  }
-
-  // إحصائيات عن المستويات
-  static Map<String, dynamic> getStatistics() {
-    final allLevels = getAllLevels();
-    final gridSizes = <int, int>{};
-    int minSize = 999;
-    int maxSize = 0;
-
-    return {
-      'totalLevels': allLevels.length,
-      'gridSizeDistribution': gridSizes,
-      'minGridSize': minSize,
-      'maxGridSize': maxSize,
-    };
-  }
-}
-
-class LevelDataModel {
-  final int levelNumber;
-  final List<String> questions; // الأسئلة بعدد الكلمات
-  final List<String> words; // الكلمات (الإجابات)
-  final List<List<String>>
-  gridLetters; // الأحرف المستخدمة في الشبكة (قوائم متداخلة)
-
-  LevelDataModel({
-    required this.levelNumber,
-    required this.questions,
-    required this.words,
-    required this.gridLetters,
-  }) {
-    // التحقق من صحة البيانات
-    assert(
-      questions.length == words.length,
-      'عدد الأسئلة يجب أن يساوي عدد الكلمات',
-    );
-  }
-
-  double get horizontal {
-    switch (gridLetters.first.length) {
-      case 3:
-        return 48.0;
-      case 4:
-        return 40.0;
-      case 5:
-        return 32.0;
-      case 6:
-        return 24.0;
-      case 7:
-        return 16.0;
-      default:
-        return 8.0;
-    }
-  }
-
-  // عدد الكلمات الإجمالي
-  int get totalWords => words.length;
-
-  // عدد الأسئلة
-  int get totalQuestions => questions.length;
-
-  // النقاط المتوقعة للمستوى
-  int get expectedScore {
-    return words.fold(0, (sum, word) => sum + (word.length * 10));
-  }
-
-  // الحصول على سؤال وكلمة معينة
-  Map<String, String> getQuestionAndWord(int index) {
-    if (index >= 0 && index < words.length) {
-      return {'question': questions[index], 'word': words[index]};
-    }
-    return {};
-  }
-
-  factory LevelDataModel.empty() {
-    return LevelDataModel(
-      levelNumber: 0,
-      questions: ['عضو للشم', 'فاكهة صفراء', 'حيوان أليف'],
-      words: ['أنف', 'موز', 'قطة'],
-      gridLetters: [
-        ['أ', 'ن', 'ف'],
-        ['م', 'و', 'ز'],
-        ['ق', 'ط', 'ة'],
-      ],
-    );
-  }
-
-  String getLetterAt(int row, int col) {
-    if (row >= 0 &&
-        row < gridLetters.length &&
-        col >= 0 &&
-        col < gridLetters[row].length) {
-      return gridLetters[row][col];
-    }
-    return '';
   }
 }

@@ -1,22 +1,19 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/constants/app_constants.dart';
+import 'core/theme/app_theme.dart';
+import 'presentation/screens/splash/splash_screen.dart';
 
-import 'screens/splash_screen.dart';
-
+/// التطبيق الرئيسي
 class JumalApp extends StatelessWidget {
   const JumalApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'لعبة البحث عن الكلمات',
+      title: AppConstants.appTitle,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-        fontFamily: 'Cairo', // إذا أضفت خط عربي
-      ),
+      theme: AppTheme.lightTheme,
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar')],
       localizationsDelegates: const [

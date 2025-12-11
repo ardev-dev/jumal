@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:jumal/app.dart';
-
-import 'core/services/game_progress_service.dart';
+import 'app.dart';
+import 'config/app_config.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // تهيئة التطبيق
+  await AppConfig.initialize();
 
-  // تهيئة Hive
-  await initHive();
-
-  // قفل الشاشة في الوضع العمودي
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
+  // تشغيل التطبيق
   runApp(const JumalApp());
 }
